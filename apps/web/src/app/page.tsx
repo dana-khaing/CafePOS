@@ -6,7 +6,10 @@ export default function HomePage() {
       <section className="welcome">
         <p>Foundation workspace</p>
         <h1>{PRODUCT_NAME}</h1>
-        <p>The offline-first cafe and restaurant point-of-sale system is ready to build.</p>
+        <p>
+          The offline-first cafe and restaurant point-of-sale system is ready to
+          build.
+        </p>
       </section>
     </main>
   )
