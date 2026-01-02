@@ -58,7 +58,11 @@ export function AppShell({ children }: { children: ReactNode }) {
               className="justify-start"
               asChild
             >
-              <Link href={item.href} onClick={() => setMenuOpen(false)}>
+              <Link
+                href={item.href}
+                aria-current={index === 0 ? 'page' : undefined}
+                onClick={() => setMenuOpen(false)}
+              >
                 <item.icon aria-hidden="true" />
                 {item.label}
               </Link>
