@@ -8,8 +8,11 @@ describe('PWA manifest', () => {
 
     expect(value.display).toBe('standalone')
     expect(value.start_url).toBe('/')
-    expect(value.icons).toContainEqual(
-      expect.objectContaining({ src: '/icon.svg' }),
+    expect(value.icons).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ src: '/icon.svg', purpose: 'any' }),
+        expect.objectContaining({ src: '/icon.svg', purpose: 'maskable' }),
+      ]),
     )
   })
 })
