@@ -19,11 +19,11 @@ import {
 
 const quickActions = [
   {
-    label: 'New counter order',
+    label: 'Counter service',
     description: 'Dine in or takeaway',
     icon: Plus,
   },
-  { label: 'Open tables', description: '3 active tabs', icon: LayoutGrid },
+  { label: 'Dining room', description: '3 active tabs', icon: LayoutGrid },
   {
     label: 'Kitchen queue',
     description: '4 tickets preparing',
@@ -68,7 +68,11 @@ export default function HomePage() {
               Riverside Café · Bangkok
             </p>
           </div>
-          <Button size="lg">
+          <Button
+            size="lg"
+            disabled
+            title="Ordering is delivered in the January 9 feature"
+          >
             <Plus aria-hidden="true" />
             New order
           </Button>
@@ -80,10 +84,7 @@ export default function HomePage() {
           </h2>
           <div className="grid gap-3 md:grid-cols-3">
             {quickActions.map((action) => (
-              <Card
-                key={action.label}
-                className="transition-shadow hover:shadow-md"
-              >
+              <Card key={action.label}>
                 <CardContent className="flex items-center gap-4 p-5">
                   <span className="grid size-12 shrink-0 place-items-center rounded-lg bg-accent text-accent-foreground">
                     <action.icon className="size-5" aria-hidden="true" />
@@ -94,10 +95,6 @@ export default function HomePage() {
                       {action.description}
                     </span>
                   </span>
-                  <ArrowRight
-                    className="size-4 text-muted-foreground"
-                    aria-hidden="true"
-                  />
                 </CardContent>
               </Card>
             ))}
@@ -140,7 +137,12 @@ export default function HomePage() {
               <CardTitle>Recent activity</CardTitle>
               <CardDescription>Latest orders from this branch</CardDescription>
             </div>
-            <Button variant="ghost" size="sm">
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled
+              title="Order history is delivered in the January 9 feature"
+            >
               View all
               <ArrowRight aria-hidden="true" />
             </Button>
