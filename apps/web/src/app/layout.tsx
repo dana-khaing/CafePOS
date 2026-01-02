@@ -1,11 +1,19 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 
+import { ServiceWorkerRegistration } from '@/components/service-worker-registration'
+
 import './globals.css'
 
 export const metadata: Metadata = {
   title: 'CafePOS',
   description: 'Offline-first point of sale for cafes and restaurants',
+  applicationName: 'CafePOS',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'CafePOS',
+  },
 }
 
 const geistSans = Geist({
@@ -23,7 +31,10 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        {children}
+        <ServiceWorkerRegistration />
+      </body>
     </html>
   )
 }
