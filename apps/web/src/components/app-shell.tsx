@@ -1,3 +1,5 @@
+'use client'
+
 import {
   BarChart3,
   Coffee,
@@ -10,18 +12,21 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 
 import { ConnectivityChip } from '@/components/connectivity-chip'
+import { LanguageSwitcher } from '@/components/language-switcher'
+import { useLocale } from '@/components/locale-provider'
 import { MobileNavigation } from '@/components/mobile-navigation'
 import { Button } from '@/components/ui/button'
 
 const navigation = [
-  { label: 'Overview', href: '/' as const, icon: LayoutDashboard },
-  { label: 'Orders', href: '/' as const, icon: ReceiptText },
-  { label: 'Kitchen', href: '/' as const, icon: Utensils },
-  { label: 'Reports', href: '/' as const, icon: BarChart3 },
-  { label: 'Settings', href: '/' as const, icon: Settings },
+  { label: 'overview' as const, href: '/' as const, icon: LayoutDashboard },
+  { label: 'orders' as const, href: '/' as const, icon: ReceiptText },
+  { label: 'kitchen' as const, href: '/' as const, icon: Utensils },
+  { label: 'reports' as const, href: '/' as const, icon: BarChart3 },
+  { label: 'settings' as const, href: '/' as const, icon: Settings },
 ]
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const { t } = useLocale()
   return (
     <div className="min-h-screen bg-background lg:grid lg:grid-cols-[16rem_1fr]">
       <aside className="sticky top-0 hidden h-screen w-64 flex-col border-e bg-card p-4 lg:flex">
@@ -52,16 +57,16 @@ export function AppShell({ children }: { children: ReactNode }) {
                 aria-current={index === 0 ? 'page' : undefined}
               >
                 <item.icon aria-hidden="true" />
-                {item.label}
+                {t(item.label)}
               </Link>
             </Button>
           ))}
         </nav>
 
         <div className="mt-auto rounded-lg bg-muted p-3 text-sm">
-          <span className="font-medium">Branch hub</span>
+          <span className="font-medium">{t('branchHub')}</span>
           <span className="mt-1 block text-muted-foreground">
-            Last sync just now
+            {t('lastSync')}
           </span>
         </div>
       </aside>
@@ -73,12 +78,13 @@ export function AppShell({ children }: { children: ReactNode }) {
             <ConnectivityChip />
           </div>
           <div className="flex items-center gap-3 text-sm">
+            <LanguageSwitcher />
             <span className="hidden text-muted-foreground sm:inline">
-              Cashier
+              {t('cashier')}
             </span>
             <span
               className="grid size-9 place-items-center rounded-full bg-secondary font-semibold"
-              aria-label="Signed in as Mina"
+              aria-label={t('signedIn')}
             >
               MK
             </span>

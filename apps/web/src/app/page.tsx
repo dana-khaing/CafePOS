@@ -1,3 +1,5 @@
+'use client'
+
 import {
   ArrowRight,
   LayoutGrid,
@@ -7,6 +9,7 @@ import {
 } from 'lucide-react'
 
 import { AppShell } from '@/components/app-shell'
+import { useLocale } from '@/components/locale-provider'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -19,14 +22,18 @@ import {
 
 const quickActions = [
   {
-    label: 'Counter service',
-    description: 'Dine in or takeaway',
+    label: 'counterService' as const,
+    description: 'counterDetail' as const,
     icon: Plus,
   },
-  { label: 'Dining room', description: '3 active tabs', icon: LayoutGrid },
   {
-    label: 'Kitchen queue',
-    description: '4 tickets preparing',
+    label: 'diningRoom' as const,
+    description: 'diningDetail' as const,
+    icon: LayoutGrid,
+  },
+  {
+    label: 'kitchenQueue' as const,
+    description: 'kitchenDetail' as const,
     icon: Utensils,
   },
 ]
@@ -34,39 +41,39 @@ const quickActions = [
 const activity = [
   {
     reference: '#1042',
-    detail: 'Table 6 · 4 items',
-    total: 'THB 640',
-    status: 'Preparing',
+    detail: 'tableItems' as const,
+    total: 640,
+    status: 'preparing' as const,
   },
   {
     reference: '#1041',
-    detail: 'Takeaway · 2 items',
-    total: 'THB 185',
-    status: 'Ready',
+    detail: 'takeawayItems' as const,
+    total: 185,
+    status: 'ready' as const,
   },
   {
     reference: '#1040',
-    detail: 'Counter · 3 items',
-    total: 'THB 320',
-    status: 'Paid',
+    detail: 'counterItems' as const,
+    total: 320,
+    status: 'paid' as const,
   },
 ]
 
 export default function HomePage() {
+  const { date, money, t } = useLocale()
+  const dashboardDate = new Date(2026, 6, 21)
   return (
     <AppShell>
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-4 md:p-6 lg:p-8">
         <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
             <p className="text-sm font-medium text-muted-foreground">
-              Tuesday, 21 July
+              {date(dashboardDate)}
             </p>
             <h1 className="mt-1 text-3xl font-semibold tracking-tight">
-              Good afternoon, Mina
+              {t('greeting')}
             </h1>
-            <p className="mt-2 text-muted-foreground">
-              Riverside Café · Bangkok
-            </p>
+            <p className="mt-2 text-muted-foreground">{t('branch')}</p>
           </div>
           <Button
             size="lg"
@@ -74,13 +81,13 @@ export default function HomePage() {
             title="Ordering is delivered in the January 9 feature"
           >
             <Plus aria-hidden="true" />
-            New order
+            {t('newOrder')}
           </Button>
         </section>
 
         <section aria-labelledby="quick-actions-heading">
           <h2 id="quick-actions-heading" className="sr-only">
-            Quick actions
+            {t('quickActions')}
           </h2>
           <div className="grid gap-3 md:grid-cols-3">
             {quickActions.map((action) => (
@@ -90,9 +97,11 @@ export default function HomePage() {
                     <action.icon className="size-5" aria-hidden="true" />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block font-semibold">{action.label}</span>
+                    <span className="block font-semibold">
+                      {t(action.label)}
+                    </span>
                     <span className="block text-sm text-muted-foreground">
-                      {action.description}
+                      {t(action.description)}
                     </span>
                   </span>
                 </CardContent>
@@ -104,29 +113,31 @@ export default function HomePage() {
         <section className="grid gap-4 md:grid-cols-3">
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Net sales today</CardDescription>
-              <CardTitle className="font-mono text-2xl">THB 12,840</CardTitle>
+              <CardDescription>{t('netSales')}</CardDescription>
+              <CardTitle className="font-mono text-2xl">
+                {money(12840)}
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <Badge variant="success">+8.4% vs last Tuesday</Badge>
+              <Badge variant="success">{t('salesComparison')}</Badge>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Orders</CardDescription>
+              <CardDescription>{t('orders')}</CardDescription>
               <CardTitle className="font-mono text-2xl">48</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
-              Average THB 267.50
+              {t('average')} {money(267.5)}
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Current shift</CardDescription>
-              <CardTitle className="text-2xl">Open · 5h 18m</CardTitle>
+              <CardDescription>{t('currentShift')}</CardDescription>
+              <CardTitle className="text-2xl">{t('shiftOpen')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <Badge variant="outline">Till 1 · Mina</Badge>
+              <Badge variant="outline">{t('till')}</Badge>
             </CardContent>
           </Card>
         </section>
@@ -134,8 +145,8 @@ export default function HomePage() {
         <Card>
           <CardHeader className="flex-row items-center justify-between gap-4">
             <div>
-              <CardTitle>Recent activity</CardTitle>
-              <CardDescription>Latest orders from this branch</CardDescription>
+              <CardTitle>{t('recentActivity')}</CardTitle>
+              <CardDescription>{t('latestOrders')}</CardDescription>
             </div>
             <Button
               variant="ghost"
@@ -143,7 +154,7 @@ export default function HomePage() {
               disabled
               title="Order history is delivered in the January 9 feature"
             >
-              View all
+              {t('viewAll')}
               <ArrowRight aria-hidden="true" />
             </Button>
           </CardHeader>
@@ -161,15 +172,15 @@ export default function HomePage() {
                     {item.reference}
                   </span>
                   <span className="block truncate text-sm text-muted-foreground">
-                    {item.detail}
+                    {t(item.detail)}
                   </span>
                 </span>
                 <span className="hidden text-right sm:block">
                   <span className="block font-mono text-sm font-semibold">
-                    {item.total}
+                    {money(item.total)}
                   </span>
                   <span className="block text-xs text-muted-foreground">
-                    {item.status}
+                    {t(item.status)}
                   </span>
                 </span>
               </div>
