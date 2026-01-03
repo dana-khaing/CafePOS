@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 
 import { ServiceWorkerRegistration } from '@/components/service-worker-registration'
+import { LocaleProvider } from '@/components/locale-provider'
 
 import './globals.css'
 
@@ -32,7 +33,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body className="antialiased">
-        {children}
+        <LocaleProvider>{children}</LocaleProvider>
         <ServiceWorkerRegistration />
       </body>
     </html>
