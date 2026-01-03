@@ -15,7 +15,7 @@ export function LanguageSwitcher() {
       variant="ghost"
       size="sm"
       onClick={() => setLocale(nextLocale)}
-      aria-label={`${t('language')}: ${locale === 'en' ? t('english') : t('thai')}`}
+      aria-label={locale === 'en' ? t('switchToThai') : t('switchToEnglish')}
       title={locale === 'en' ? t('thai') : t('english')}
     >
       <Languages aria-hidden="true" />

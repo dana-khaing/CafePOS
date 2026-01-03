@@ -13,8 +13,9 @@ const SheetClose = DialogPrimitive.Close
 function SheetContent({
   className,
   children,
+  closeLabel = 'Close navigation',
   ...props
-}: ComponentProps<typeof DialogPrimitive.Content>) {
+}: ComponentProps<typeof DialogPrimitive.Content> & { closeLabel?: string }) {
   return (
     <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-foreground/25 data-[state=closed]:animate-out data-[state=open]:animate-in" />
@@ -28,7 +29,7 @@ function SheetContent({
         {children}
         <SheetClose className="absolute end-3 top-3 grid size-10 place-items-center rounded-md hover:bg-muted focus-visible:outline-none">
           <X className="size-5" aria-hidden="true" />
-          <span className="sr-only">Close navigation</span>
+          <span className="sr-only">{closeLabel}</span>
         </SheetClose>
       </DialogPrimitive.Content>
     </DialogPrimitive.Portal>

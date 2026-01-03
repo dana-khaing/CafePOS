@@ -44,7 +44,10 @@ export function MobileNavigation() {
           <Menu aria-hidden="true" />
         </Button>
       </SheetTrigger>
-      <SheetContent aria-describedby="mobile-navigation-description">
+      <SheetContent
+        aria-describedby="mobile-navigation-description"
+        closeLabel={t('closeNavigation')}
+      >
         <SheetTitle className="flex h-14 items-center gap-3 px-2 pe-12">
           <span className="grid size-10 place-items-center rounded-lg bg-primary text-primary-foreground">
             <Coffee className="size-5" aria-hidden="true" />
@@ -55,9 +58,9 @@ export function MobileNavigation() {
           id="mobile-navigation-description"
           className="sr-only"
         >
-          Navigate between CafePOS work areas.
+          {t('navigationDescription')}
         </SheetDescription>
-        <nav aria-label="Mobile primary" className="mt-6 grid gap-1">
+        <nav aria-label={t('mobileNavigation')} className="mt-6 grid gap-1">
           {navigation.map((item, index) => (
             <SheetClose key={item.label} asChild>
               <Button
