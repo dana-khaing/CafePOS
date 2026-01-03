@@ -75,11 +75,7 @@ export default function HomePage() {
             </h1>
             <p className="mt-2 text-muted-foreground">{t('branch')}</p>
           </div>
-          <Button
-            size="lg"
-            disabled
-            title="Ordering is delivered in the January 9 feature"
-          >
+          <Button size="lg" disabled title={t('orderingComingSoon')}>
             <Plus aria-hidden="true" />
             {t('newOrder')}
           </Button>
@@ -152,7 +148,7 @@ export default function HomePage() {
               variant="ghost"
               size="sm"
               disabled
-              title="Order history is delivered in the January 9 feature"
+              title={t('historyComingSoon')}
             >
               {t('viewAll')}
               <ArrowRight aria-hidden="true" />

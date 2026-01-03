@@ -39,12 +39,12 @@ export function AppShell({ children }: { children: ReactNode }) {
               CafePOS
             </span>
             <span className="block text-xs text-muted-foreground">
-              Riverside Café
+              {t('cafeName')}
             </span>
           </span>
         </div>
 
-        <nav aria-label="Primary" className="mt-6 grid gap-1">
+        <nav aria-label={t('primaryNavigation')} className="mt-6 grid gap-1">
           {navigation.map((item, index) => (
             <Button
               key={item.label}
