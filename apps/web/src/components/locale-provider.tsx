@@ -16,6 +16,7 @@ import {
   isLocale,
   type Locale,
 } from '@/lib/i18n'
+import { type MessageKey, messages } from '@/lib/messages'
 
 const STORAGE_KEY = 'cafepos.locale'
 
@@ -24,6 +25,7 @@ type LocaleContextValue = {
   setLocale: (locale: Locale) => void
   money: (amount: number) => string
   date: (value: Date) => string
+  t: (key: MessageKey) => string
 }
 
 const LocaleContext = createContext<LocaleContextValue | null>(null)
@@ -47,6 +49,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
       setLocale,
       money: (amount: number) => formatMoney(amount, locale),
       date: (dateValue: Date) => formatCafeDate(dateValue, locale),
+      t: (key: MessageKey) => messages[locale][key],
     }),
     [locale],
   )
