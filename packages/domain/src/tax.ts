@@ -18,6 +18,8 @@ export type TaxBreakdown = Readonly<{
 function validateRate(rate: TaxRate) {
   if (!rate.id.trim() || !rate.name.trim())
     throw new TypeError('Tax rate requires an id and name')
+  if (rate.mode !== 'exclusive' && rate.mode !== 'inclusive')
+    throw new TypeError(`Unsupported tax mode: ${String(rate.mode)}`)
   if (
     !Number.isSafeInteger(rate.basisPoints) ||
     rate.basisPoints < 0 ||
@@ -27,8 +29,12 @@ function validateRate(rate: TaxRate) {
   }
 }
 
-function roundHalfUp(numerator: number, denominator: number) {
-  return Math.floor((numerator + denominator / 2) / denominator)
+function roundHalfUp(numerator: bigint, denominator: bigint) {
+  const rounded = (numerator * 2n + denominator) / (denominator * 2n)
+  const value = Number(rounded)
+  if (!Number.isSafeInteger(value))
+    throw new RangeError('Tax result exceeds safe integer range')
+  return value
 }
 
 export function calculateTax(amount: Money, rate: TaxRate): TaxBreakdown {
@@ -37,7 +43,10 @@ export function calculateTax(amount: Money, rate: TaxRate): TaxBreakdown {
     throw new RangeError('Taxable amount cannot be negative')
 
   if (rate.mode === 'exclusive') {
-    const taxMinor = roundHalfUp(amount.minor * rate.basisPoints, 10_000)
+    const taxMinor = roundHalfUp(
+      BigInt(amount.minor) * BigInt(rate.basisPoints),
+      10_000n,
+    )
     return {
       net: amount,
       tax: money(taxMinor, amount.currency),
@@ -45,10 +54,13 @@ export function calculateTax(amount: Money, rate: TaxRate): TaxBreakdown {
     }
   }
 
-  const netMinor = roundHalfUp(amount.minor * 10_000, 10_000 + rate.basisPoints)
+  const taxMinor = roundHalfUp(
+    BigInt(amount.minor) * BigInt(rate.basisPoints),
+    BigInt(10_000 + rate.basisPoints),
+  )
   return {
-    net: money(netMinor, amount.currency),
-    tax: money(amount.minor - netMinor, amount.currency),
+    net: money(amount.minor - taxMinor, amount.currency),
+    tax: money(taxMinor, amount.currency),
     gross: amount,
   }
 }
