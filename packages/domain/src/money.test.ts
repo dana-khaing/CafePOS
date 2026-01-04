@@ -22,5 +22,6 @@ describe('money', () => {
     expect(() => addMoney(money(100, 'THB'), money(100, 'MMK'))).toThrow(
       TypeError,
     )
+    expect(() => money(100, 'USD' as 'THB')).toThrow(TypeError)
   })
 })

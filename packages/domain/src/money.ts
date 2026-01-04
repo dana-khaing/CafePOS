@@ -13,6 +13,9 @@ function assertMinorUnits(value: number) {
 
 export function money(minor: number, currency: Currency = 'THB'): Money {
   assertMinorUnits(minor)
+  if (currency !== 'THB' && currency !== 'MMK') {
+    throw new TypeError(`Unsupported currency: ${String(currency)}`)
+  }
   return Object.freeze({ minor, currency })
 }
 
