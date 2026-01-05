@@ -13,6 +13,7 @@ export const permissions = [
   'branch.create',
   'branch.manage',
   'staff.manage',
+  'branch.staff.assign',
   'order.create',
   'kitchen.view',
   'report.view',
@@ -25,7 +26,7 @@ const rolePermissions: Record<MembershipRole, ReadonlySet<Permission>> = {
   admin: new Set(permissions),
   manager: new Set([
     'branch.manage',
-    'staff.manage',
+    'branch.staff.assign',
     'order.create',
     'kitchen.view',
     'report.view',
