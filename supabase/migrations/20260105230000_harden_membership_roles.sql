@@ -2,6 +2,15 @@ drop policy memberships_insert_admin on public.memberships;
 drop policy memberships_update_admin on public.memberships;
 drop policy memberships_delete_owner on public.memberships;
 
+revoke update on public.organizations from authenticated;
+grant update (name, slug) on public.organizations to authenticated;
+
+revoke update on public.branches from authenticated;
+grant update (name, code, timezone, currency) on public.branches to authenticated;
+
+revoke update on public.memberships from authenticated;
+grant update (role) on public.memberships to authenticated;
+
 create policy memberships_insert_guarded
 on public.memberships for insert to authenticated
 with check (
