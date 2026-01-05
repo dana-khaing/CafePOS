@@ -12,7 +12,8 @@ describe('membership permissions', () => {
 
   it('limits managers to branch operations and reporting', () => {
     expect(hasPermission('manager', 'branch.manage')).toBe(true)
-    expect(hasPermission('manager', 'staff.manage')).toBe(true)
+    expect(hasPermission('manager', 'branch.staff.assign')).toBe(true)
+    expect(hasPermission('manager', 'staff.manage')).toBe(false)
     expect(hasPermission('manager', 'organization.manage')).toBe(false)
     expect(hasPermission('manager', 'branch.create')).toBe(false)
   })

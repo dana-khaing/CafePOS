@@ -16,6 +16,14 @@ unexposed `private` schema, use an empty search path, and always bind checks to
 `auth.uid()`. Application authorization mirrors the database roles but never
 replaces database enforcement.
 
+Owner membership rows are immutable through client RLS, preventing accidental
+or malicious removal of a tenant's final owner. Ownership transfer is reserved
+for a separately reviewed server-side workflow. Administrators can manage
+operational staff roles; managers can assign existing members to branches.
+Managers cannot expand their own access and may only assign cashier or kitchen
+members. Branch metadata remains organization-visible; later operational tables
+must enforce branch assignments in their own RLS policies.
+
 ## Consequences
 
 Cloud requests fail closed without an authenticated membership. Service-role
