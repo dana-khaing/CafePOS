@@ -24,6 +24,10 @@ Managers cannot expand their own access and may only assign cashier or kitchen
 members. Branch metadata remains organization-visible; later operational tables
 must enforce branch assignments in their own RLS policies.
 
+Tenant identity columns, including `organizations.created_by` and every
+`organization_id`, are not client-updatable. Authenticated updates use explicit
+column grants for mutable display and configuration fields only.
+
 ## Consequences
 
 Cloud requests fail closed without an authenticated membership. Service-role
