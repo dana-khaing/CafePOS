@@ -1,7 +1,7 @@
 import { createHubApp } from './app.js'
+import { loadHubConfig } from './config.js'
 
-const port = Number(process.env.PORT ?? 4310)
-const host = process.env.HOST ?? '127.0.0.1'
-const app = createHubApp()
+const config = loadHubConfig()
+const app = createHubApp(config)
 
-await app.listen({ host, port })
+await app.listen({ host: config.host, port: config.port })
