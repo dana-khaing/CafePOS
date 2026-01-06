@@ -1,3 +1,5 @@
+import 'dotenv/config'
+
 import { createHubApp } from './app.js'
 import { loadHubConfig } from './config.js'
 
