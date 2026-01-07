@@ -16,9 +16,11 @@ silently overwritten. Newer versions advance the replica.
 
 The branch hub persists outbound events before delivery. Workers claim bounded
 batches with expiring leases, acknowledge accepted events, and retry failures
-with bounded exponential backoff. The initial journal uses a single-process
-JSON store with serialized operations and atomic replacement, suitable for the
-one-service-per-branch model.
+with bounded exponential backoff. Every claim has a unique token; stale workers
+cannot acknowledge or retry a lease reclaimed by another worker. The initial
+journal uses a single-process JSON store with per-path serialized operations,
+unique temporary files, strict runtime validation, and atomic replacement,
+suitable for the one-service-per-branch model.
 
 ## Consequences
 

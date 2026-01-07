@@ -29,6 +29,10 @@ describe('sync events', () => {
     if (applied.status !== 'applied') throw new Error('expected applied event')
 
     expect(applySyncEvent(applied.record, event()).status).toBe('duplicate')
+    expect(
+      applySyncEvent(applied.record, event({ payload: { status: 'paid' } }))
+        .status,
+    ).toBe('conflict')
     const newerRecord = {
       ...applied.record,
       aggregateVersion: 2,
@@ -67,6 +71,12 @@ describe('sync events', () => {
     ).toThrow(TypeError)
     expect(() =>
       validateSyncEvent(event({ operation: 'delete', payload: {} })),
+    ).toThrow(TypeError)
+    expect(() =>
+      validateSyncEvent(event({ payload: { amount: Number.NaN } })),
+    ).toThrow(TypeError)
+    expect(() =>
+      validateSyncEvent(event({ payload: { missing: undefined } as never })),
     ).toThrow(TypeError)
   })
 })
