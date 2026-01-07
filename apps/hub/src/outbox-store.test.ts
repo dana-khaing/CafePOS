@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -46,15 +46,44 @@ describe('file outbox store', () => {
   it('serializes concurrent writes without losing events', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'cafepos-outbox-'))
     directories.push(directory)
-    const store = new FileOutboxStore(join(directory, 'outbox.json'))
+    const path = join(directory, 'outbox.json')
 
     await Promise.all([
-      store.enqueue(event, event.occurredAt),
-      store.enqueue(
+      new FileOutboxStore(path).enqueue(event, event.occurredAt),
+      new FileOutboxStore(path).enqueue(
         { ...event, id: 'evt-02', entityId: 'order-02' },
         event.occurredAt,
       ),
     ])
-    expect(await store.summary()).toEqual({ pending: 2, inflight: 0, total: 2 })
+    expect(await new FileOutboxStore(path).summary()).toEqual({
+      pending: 2,
+      inflight: 0,
+      total: 2,
+    })
+  })
+
+  it('rejects inconsistent leases and duplicate IDs in a corrupted journal', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'cafepos-outbox-'))
+    directories.push(directory)
+    const path = join(directory, 'outbox.json')
+    const store = new FileOutboxStore(path)
+    await store.enqueue(event, event.occurredAt)
+    const items = JSON.parse(await readFile(path, 'utf8')) as Record<
+      string,
+      unknown
+    >[]
+
+    items[0] = { ...items[0], state: 'inflight', leaseExpiresAt: null }
+    await writeFile(path, JSON.stringify(items))
+    await expect(store.summary()).rejects.toThrow('lease state')
+
+    items[0] = {
+      ...items[0],
+      state: 'pending',
+      leaseToken: null,
+      leaseExpiresAt: null,
+    }
+    await writeFile(path, JSON.stringify([items[0], items[0]]))
+    await expect(store.summary()).rejects.toThrow('duplicate')
   })
 })
