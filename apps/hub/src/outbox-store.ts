@@ -1,5 +1,6 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
-import { dirname } from 'node:path'
+import { randomUUID } from 'node:crypto'
+import { dirname, resolve } from 'node:path'
 
 import {
   acknowledgeEvents,
@@ -7,9 +8,12 @@ import {
   enqueueEvent,
   retryEvent,
   type OutboxItem,
+  type LeaseReceipt,
   type SyncEvent,
   validateSyncEvent,
 } from '@cafepos/domain'
+
+const operationsByPath = new Map<string, Promise<void>>()
 
 export type SyncSummary = Readonly<{
   pending: number
@@ -19,17 +23,20 @@ export type SyncSummary = Readonly<{
 
 export class FileOutboxStore {
   readonly #path: string
-  #operation = Promise.resolve()
 
   constructor(path: string) {
-    this.#path = path
+    this.#path = resolve(path)
   }
 
   async #serialized<T>(operation: () => Promise<T>): Promise<T> {
-    const result = this.#operation.then(operation, operation)
-    this.#operation = result.then(
-      () => undefined,
-      () => undefined,
+    const previous = operationsByPath.get(this.#path) ?? Promise.resolve()
+    const result = previous.then(operation, operation)
+    operationsByPath.set(
+      this.#path,
+      result.then(
+        () => undefined,
+        () => undefined,
+      ),
     )
     return result
   }
@@ -39,8 +46,12 @@ export class FileOutboxStore {
       const parsed: unknown = JSON.parse(await readFile(this.#path, 'utf8'))
       if (!Array.isArray(parsed))
         throw new TypeError('Outbox journal must contain an array')
+      const eventIds = new Set<string>()
       for (const item of parsed as OutboxItem[]) {
         validateSyncEvent(item.event)
+        if (eventIds.has(item.event.id))
+          throw new TypeError('Outbox journal contains duplicate event IDs')
+        eventIds.add(item.event.id)
         if (item.state !== 'pending' && item.state !== 'inflight') {
           throw new TypeError('Outbox item has an invalid state')
         }
@@ -56,6 +67,20 @@ export class FileOutboxStore {
         ) {
           throw new TypeError('Outbox item has an invalid lease')
         }
+        if (
+          (item.state === 'pending' &&
+            (item.leaseExpiresAt !== null || item.leaseToken !== null)) ||
+          (item.state === 'inflight' &&
+            (item.leaseExpiresAt === null || !item.leaseToken?.trim()))
+        ) {
+          throw new TypeError('Outbox item has inconsistent lease state')
+        }
+        if (
+          item.lastError !== null &&
+          (typeof item.lastError !== 'string' || item.lastError.length > 500)
+        ) {
+          throw new TypeError('Outbox item has an invalid error')
+        }
       }
       return parsed as OutboxItem[]
     } catch (error) {
@@ -66,7 +91,7 @@ export class FileOutboxStore {
 
   async #write(outbox: readonly OutboxItem[]) {
     await mkdir(dirname(this.#path), { recursive: true })
-    const temporaryPath = `${this.#path}.tmp`
+    const temporaryPath = `${this.#path}.${randomUUID()}.tmp`
     await writeFile(temporaryPath, `${JSON.stringify(outbox, null, 2)}\n`, {
       encoding: 'utf8',
       mode: 0o600,
@@ -83,22 +108,22 @@ export class FileOutboxStore {
 
   claim(now = new Date().toISOString(), limit = 50) {
     return this.#serialized(async () => {
-      const result = claimOutbox(await this.#read(), now, limit)
+      const result = claimOutbox(await this.#read(), now, randomUUID(), limit)
       await this.#write(result.outbox)
       return result.claimed
     })
   }
 
-  acknowledge(eventIds: readonly string[]) {
+  acknowledge(receipts: readonly LeaseReceipt[]) {
     return this.#serialized(async () => {
-      const outbox = acknowledgeEvents(await this.#read(), eventIds)
+      const outbox = acknowledgeEvents(await this.#read(), receipts)
       await this.#write(outbox)
     })
   }
 
-  retry(eventId: string, error: string, now = new Date().toISOString()) {
+  retry(receipt: LeaseReceipt, error: string, now = new Date().toISOString()) {
     return this.#serialized(async () => {
-      const outbox = retryEvent(await this.#read(), eventId, now, error)
+      const outbox = retryEvent(await this.#read(), receipt, now, error)
       await this.#write(outbox)
     })
   }
