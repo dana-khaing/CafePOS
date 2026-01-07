@@ -50,4 +50,16 @@ describe('branch hub health endpoint', () => {
       branch: { id: 'branch-riverside', name: 'Riverside Cafe' },
     })
   })
+
+  it('reports an empty sync queue before local mutations exist', async () => {
+    const app = createHubApp(config)
+    apps.push(app)
+
+    const response = await app.inject({ method: 'GET', url: '/v1/sync/status' })
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toEqual({
+      status: 'ready',
+      outbox: { pending: 0, inflight: 0, total: 0 },
+    })
+  })
 })
