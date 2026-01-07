@@ -5,6 +5,7 @@ export type HubConfig = Readonly<{
   branchName: string
   publicOrigin: string
   webOrigins: readonly string[]
+  outboxPath: string
 }>
 
 function required(value: string | undefined, name: string) {
@@ -38,5 +39,6 @@ export function loadHubConfig(env: NodeJS.ProcessEnv = process.env): HubConfig {
     webOrigins,
     branchId: required(env.HUB_BRANCH_ID, 'HUB_BRANCH_ID'),
     branchName: required(env.HUB_BRANCH_NAME, 'HUB_BRANCH_NAME'),
+    outboxPath: env.HUB_OUTBOX_PATH?.trim() || './data/outbox.json',
   }
 }
