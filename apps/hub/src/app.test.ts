@@ -10,6 +10,7 @@ const config = {
   branchName: 'Riverside Cafe',
   publicOrigin: 'https://branch.local.cafepos.test',
   webOrigins: ['http://localhost:3000'],
+  outboxPath: './data/outbox.json',
 } as const
 
 afterEach(async () => {
