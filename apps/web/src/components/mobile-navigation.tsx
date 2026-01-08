@@ -2,6 +2,7 @@
 
 import {
   BarChart3,
+  BookOpen,
   Coffee,
   LayoutDashboard,
   Menu,
@@ -10,6 +11,8 @@ import {
   Utensils,
 } from 'lucide-react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import type { Route } from 'next'
 
 import { useLocale } from '@/components/locale-provider'
 import { Button } from '@/components/ui/button'
@@ -22,8 +25,13 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 
-const navigation = [
+const navigation: ReadonlyArray<{
+  label: 'overview' | 'menu' | 'orders' | 'kitchen' | 'reports' | 'settings'
+  href: Route
+  icon: typeof LayoutDashboard
+}> = [
   { label: 'overview' as const, href: '/' as const, icon: LayoutDashboard },
+  { label: 'menu' as const, href: '/menu' as const, icon: BookOpen },
   { label: 'orders' as const, href: '/' as const, icon: ReceiptText },
   { label: 'kitchen' as const, href: '/' as const, icon: Utensils },
   { label: 'reports' as const, href: '/' as const, icon: BarChart3 },
@@ -32,6 +40,7 @@ const navigation = [
 
 export function MobileNavigation() {
   const { t } = useLocale()
+  const pathname = usePathname()
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -61,16 +70,16 @@ export function MobileNavigation() {
           {t('navigationDescription')}
         </SheetDescription>
         <nav aria-label={t('mobileNavigation')} className="mt-6 grid gap-1">
-          {navigation.map((item, index) => (
+          {navigation.map((item) => (
             <SheetClose key={item.label} asChild>
               <Button
-                variant={index === 0 ? 'secondary' : 'ghost'}
+                variant={pathname === item.href ? 'secondary' : 'ghost'}
                 className="justify-start"
                 asChild
               >
                 <Link
                   href={item.href}
-                  aria-current={index === 0 ? 'page' : undefined}
+                  aria-current={pathname === item.href ? 'page' : undefined}
                 >
                   <item.icon aria-hidden="true" />
                   {t(item.label)}
