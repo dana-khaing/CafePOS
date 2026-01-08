@@ -21,5 +21,26 @@ describe('local menu storage', () => {
         fallback,
       ),
     ).toBe(fallback)
+    expect(
+      parseStoredMenu(
+        JSON.stringify({
+          ...fallback,
+          items: [
+            {
+              id: 'forged',
+              categoryId: 'coffee',
+              sku: 'FORGED',
+              name: { en: 'Forged' },
+              price: { currency: 'THB', minor: 10.5 },
+              taxRateId: 'vat7',
+              available: 'true',
+              modifierGroupIds: [],
+            },
+          ],
+          categories: [{ id: 'coffee', name: { en: 'Coffee' }, sortOrder: 0 }],
+        }),
+        fallback,
+      ),
+    ).toBe(fallback)
   })
 })

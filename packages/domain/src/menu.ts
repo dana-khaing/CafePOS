@@ -106,8 +106,12 @@ export function validateMenu(menu: Menu): Menu {
     for (const option of group.options) {
       required(option.id, 'Modifier option id')
       validateName(option.name, 'Modifier option')
+      if (typeof option.available !== 'boolean') {
+        throw new TypeError('Modifier availability must be boolean')
+      }
       if (
         option.priceDelta.currency !== menu.currency ||
+        !Number.isSafeInteger(option.priceDelta.minor) ||
         option.priceDelta.minor < 0
       ) {
         throw new TypeError(
@@ -123,7 +127,14 @@ export function validateMenu(menu: Menu): Menu {
     validateName(item.name, 'Item')
     if (!categoryIds.has(item.categoryId))
       throw new TypeError('Item category does not exist')
-    if (item.price.currency !== menu.currency || item.price.minor < 0) {
+    if (typeof item.available !== 'boolean') {
+      throw new TypeError('Item availability must be boolean')
+    }
+    if (
+      item.price.currency !== menu.currency ||
+      !Number.isSafeInteger(item.price.minor) ||
+      item.price.minor < 0
+    ) {
       throw new TypeError('Item price must be non-negative in menu currency')
     }
     unique(item.modifierGroupIds, 'Item modifier groups')

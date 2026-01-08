@@ -69,4 +69,56 @@ describe('menu', () => {
       }),
     ).toThrow('price')
   })
+
+  it('rejects forged persisted prices and availability values', () => {
+    expect(() =>
+      validateMenu({
+        ...menu,
+        items: [
+          {
+            ...menu.items[0],
+            price: { currency: 'THB', minor: 120.5 },
+          },
+        ],
+      }),
+    ).toThrow('price')
+    expect(() =>
+      validateMenu({
+        ...menu,
+        items: [{ ...menu.items[0], available: 'yes' as never }],
+      }),
+    ).toThrow('availability')
+    expect(() =>
+      validateMenu({
+        ...menu,
+        modifierGroups: [
+          {
+            ...menu.modifierGroups[0],
+            options: [
+              {
+                ...menu.modifierGroups[0].options[0],
+                priceDelta: { currency: 'THB', minor: Number.MAX_VALUE },
+              },
+            ],
+          },
+        ],
+      }),
+    ).toThrow('price')
+    expect(() =>
+      validateMenu({
+        ...menu,
+        modifierGroups: [
+          {
+            ...menu.modifierGroups[0],
+            options: [
+              {
+                ...menu.modifierGroups[0].options[0],
+                available: 1 as never,
+              },
+            ],
+          },
+        ],
+      }),
+    ).toThrow('availability')
+  })
 })

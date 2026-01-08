@@ -7,11 +7,13 @@
 
 Menus use integer-minor-unit prices in one configured currency. Categories,
 items, SKUs, modifier groups, and options have stable IDs. English names are
-required and Thai names are optional. Items reference an existing category,
-tax rate, and modifier groups; modifier selection bounds cannot exceed their
-available options.
+required and Thai names are optional. Items reference an existing category and
+modifier groups; modifier selection bounds cannot exceed their available
+options.
 
-Availability is an explicit item/option property rather than deletion. This
+Tax rate IDs are required, but existence is validated by the tax configuration
+boundary once a menu is attached to a branch. Availability is an explicit
+item/option property rather than deletion. This
 preserves historical order references while letting staff stop sales quickly.
 The first UI slice provides bilingual search, category filters, modifier
 visibility, and accessible availability controls.

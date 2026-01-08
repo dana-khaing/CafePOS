@@ -63,6 +63,7 @@ export const messages = {
     itemCount: 'items',
     modifierGroups: 'Modifier groups',
     noMenuResults: 'No menu items match this search.',
+    featureComingSoon: 'This work area is delivered in a later feature.',
   },
   th: {
     overview: 'ภาพรวม',
@@ -128,6 +129,7 @@ export const messages = {
     itemCount: 'รายการ',
     modifierGroups: 'กลุ่มตัวเลือก',
     noMenuResults: 'ไม่พบรายการเมนูที่ตรงกับการค้นหา',
+    featureComingSoon: 'ส่วนงานนี้จะพร้อมในฟีเจอร์ถัดไป',
   },
 } as const
 
