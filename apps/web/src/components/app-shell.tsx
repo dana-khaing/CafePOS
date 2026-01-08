@@ -2,6 +2,7 @@
 
 import {
   BarChart3,
+  BookOpen,
   Coffee,
   LayoutDashboard,
   ReceiptText,
@@ -9,6 +10,8 @@ import {
   Utensils,
 } from 'lucide-react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import type { Route } from 'next'
 import type { ReactNode } from 'react'
 
 import { ConnectivityChip } from '@/components/connectivity-chip'
@@ -17,8 +20,13 @@ import { useLocale } from '@/components/locale-provider'
 import { MobileNavigation } from '@/components/mobile-navigation'
 import { Button } from '@/components/ui/button'
 
-const navigation = [
+const navigation: ReadonlyArray<{
+  label: 'overview' | 'menu' | 'orders' | 'kitchen' | 'reports' | 'settings'
+  href: Route
+  icon: typeof LayoutDashboard
+}> = [
   { label: 'overview' as const, href: '/' as const, icon: LayoutDashboard },
+  { label: 'menu' as const, href: '/menu' as const, icon: BookOpen },
   { label: 'orders' as const, href: '/' as const, icon: ReceiptText },
   { label: 'kitchen' as const, href: '/' as const, icon: Utensils },
   { label: 'reports' as const, href: '/' as const, icon: BarChart3 },
@@ -27,6 +35,7 @@ const navigation = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { t } = useLocale()
+  const pathname = usePathname()
   return (
     <div className="min-h-screen bg-background lg:grid lg:grid-cols-[16rem_1fr]">
       <aside className="sticky top-0 hidden h-screen w-64 flex-col border-e bg-card p-4 lg:flex">
@@ -45,16 +54,16 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
 
         <nav aria-label={t('primaryNavigation')} className="mt-6 grid gap-1">
-          {navigation.map((item, index) => (
+          {navigation.map((item) => (
             <Button
               key={item.label}
-              variant={index === 0 ? 'secondary' : 'ghost'}
+              variant={pathname === item.href ? 'secondary' : 'ghost'}
               className="justify-start"
               asChild
             >
               <Link
                 href={item.href}
-                aria-current={index === 0 ? 'page' : undefined}
+                aria-current={pathname === item.href ? 'page' : undefined}
               >
                 <item.icon aria-hidden="true" />
                 {t(item.label)}
