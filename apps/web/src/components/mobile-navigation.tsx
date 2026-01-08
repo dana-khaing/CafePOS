@@ -29,13 +29,14 @@ const navigation: ReadonlyArray<{
   label: 'overview' | 'menu' | 'orders' | 'kitchen' | 'reports' | 'settings'
   href: Route
   icon: typeof LayoutDashboard
+  available: boolean
 }> = [
-  { label: 'overview' as const, href: '/' as const, icon: LayoutDashboard },
-  { label: 'menu' as const, href: '/menu' as const, icon: BookOpen },
-  { label: 'orders' as const, href: '/' as const, icon: ReceiptText },
-  { label: 'kitchen' as const, href: '/' as const, icon: Utensils },
-  { label: 'reports' as const, href: '/' as const, icon: BarChart3 },
-  { label: 'settings' as const, href: '/' as const, icon: Settings },
+  { label: 'overview', href: '/', icon: LayoutDashboard, available: true },
+  { label: 'menu', href: '/menu', icon: BookOpen, available: true },
+  { label: 'orders', href: '/', icon: ReceiptText, available: false },
+  { label: 'kitchen', href: '/', icon: Utensils, available: false },
+  { label: 'reports', href: '/', icon: BarChart3, available: false },
+  { label: 'settings', href: '/', icon: Settings, available: false },
 ]
 
 export function MobileNavigation() {
@@ -70,23 +71,36 @@ export function MobileNavigation() {
           {t('navigationDescription')}
         </SheetDescription>
         <nav aria-label={t('mobileNavigation')} className="mt-6 grid gap-1">
-          {navigation.map((item) => (
-            <SheetClose key={item.label} asChild>
-              <Button
-                variant={pathname === item.href ? 'secondary' : 'ghost'}
-                className="justify-start"
-                asChild
-              >
-                <Link
-                  href={item.href}
-                  aria-current={pathname === item.href ? 'page' : undefined}
+          {navigation.map((item) =>
+            item.available ? (
+              <SheetClose key={item.label} asChild>
+                <Button
+                  variant={pathname === item.href ? 'secondary' : 'ghost'}
+                  className="justify-start"
+                  asChild
                 >
-                  <item.icon aria-hidden="true" />
-                  {t(item.label)}
-                </Link>
+                  <Link
+                    href={item.href}
+                    aria-current={pathname === item.href ? 'page' : undefined}
+                  >
+                    <item.icon aria-hidden="true" />
+                    {t(item.label)}
+                  </Link>
+                </Button>
+              </SheetClose>
+            ) : (
+              <Button
+                key={item.label}
+                variant="ghost"
+                className="justify-start"
+                disabled
+                title={t('featureComingSoon')}
+              >
+                <item.icon aria-hidden="true" />
+                {t(item.label)}
               </Button>
-            </SheetClose>
-          ))}
+            ),
+          )}
         </nav>
         <div className="mt-auto rounded-lg bg-muted p-3 text-sm">
           <span className="font-medium">{t('branchHub')}</span>
