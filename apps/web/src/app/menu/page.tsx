@@ -137,18 +137,26 @@ export default function MenuPage() {
   const [query, setQuery] = useState('')
 
   useEffect(() => {
-    setMenu(
-      parseStoredMenu(
-        window.localStorage.getItem(MENU_STORAGE_KEY),
-        initialMenu,
-      ),
-    )
+    try {
+      setMenu(
+        parseStoredMenu(
+          window.localStorage.getItem(MENU_STORAGE_KEY),
+          initialMenu,
+        ),
+      )
+    } catch {
+      setMenu(initialMenu)
+    }
     setStorageReady(true)
   }, [])
 
   useEffect(() => {
     if (storageReady) {
-      window.localStorage.setItem(MENU_STORAGE_KEY, serializeMenu(menu))
+      try {
+        window.localStorage.setItem(MENU_STORAGE_KEY, serializeMenu(menu))
+      } catch {
+        // Storage may be unavailable in private or locked-down browser modes.
+      }
     }
   }, [menu, storageReady])
 
@@ -202,6 +210,7 @@ export default function MenuPage() {
               size="sm"
               variant={category === 'all' ? 'secondary' : 'outline'}
               onClick={() => setCategory('all')}
+              aria-pressed={category === 'all'}
             >
               {t('allCategories')}
             </Button>
@@ -211,6 +220,7 @@ export default function MenuPage() {
                 size="sm"
                 variant={category === entry.id ? 'secondary' : 'outline'}
                 onClick={() => setCategory(entry.id)}
+                aria-pressed={category === entry.id}
               >
                 {label(entry.name)}
               </Button>
