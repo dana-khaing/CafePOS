@@ -1,7 +1,7 @@
 'use client'
 
 import { Check, Search, SlidersHorizontal, X } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { money, setMenuItemAvailability, type Menu } from '@cafepos/domain'
 
@@ -10,6 +10,11 @@ import { useLocale } from '@/components/locale-provider'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import {
+  MENU_STORAGE_KEY,
+  parseStoredMenu,
+  serializeMenu,
+} from '@/lib/menu-storage'
 
 const initialMenu: Menu = {
   currency: 'THB',
@@ -127,8 +132,25 @@ const initialMenu: Menu = {
 export default function MenuPage() {
   const { locale, money: formatMoney, t } = useLocale()
   const [menu, setMenu] = useState(initialMenu)
+  const [storageReady, setStorageReady] = useState(false)
   const [category, setCategory] = useState('all')
   const [query, setQuery] = useState('')
+
+  useEffect(() => {
+    setMenu(
+      parseStoredMenu(
+        window.localStorage.getItem(MENU_STORAGE_KEY),
+        initialMenu,
+      ),
+    )
+    setStorageReady(true)
+  }, [])
+
+  useEffect(() => {
+    if (storageReady) {
+      window.localStorage.setItem(MENU_STORAGE_KEY, serializeMenu(menu))
+    }
+  }, [menu, storageReady])
 
   const categoryNames = new Map(
     menu.categories.map((entry) => [entry.id, entry.name]),

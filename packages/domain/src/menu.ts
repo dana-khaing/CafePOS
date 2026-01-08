@@ -56,6 +56,9 @@ function unique(values: readonly string[], field: string) {
 }
 
 export function validateMenu(menu: Menu): Menu {
+  if (menu.currency !== 'THB' && menu.currency !== 'MMK') {
+    throw new TypeError('Menu currency is unsupported')
+  }
   unique(
     menu.categories.map((category) => category.id),
     'Category IDs',
