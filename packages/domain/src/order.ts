@@ -1,5 +1,5 @@
 import { addMoney, money, type Currency, type Money } from './money.js'
-import { calculateTax, type TaxRate } from './tax.js'
+import { calculateTax, type TaxRate, validateTaxRate } from './tax.js'
 
 export type OrderLineModifier = Readonly<{
   optionId: string
@@ -26,6 +26,8 @@ export type DraftOrder = Readonly<{
 
 export function validateDraftOrder(order: DraftOrder): DraftOrder {
   if (!order.id.trim()) throw new TypeError('Order id is required')
+  if (order.currency !== 'THB' && order.currency !== 'MMK')
+    throw new TypeError('Order currency is unsupported')
   const ids = new Set<string>()
   for (const line of order.lines) {
     if (!line.id.trim() || !line.itemId.trim() || !line.name.trim())
@@ -40,6 +42,7 @@ export function validateDraftOrder(order: DraftOrder): DraftOrder {
       line.unitPrice.minor < 0
     )
       throw new TypeError('Order line price is invalid')
+    validateTaxRate(line.taxRate)
     for (const modifier of line.modifiers) {
       if (!modifier.optionId.trim() || !modifier.name.trim())
         throw new TypeError('Order modifier identity and name are required')
