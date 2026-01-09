@@ -133,7 +133,7 @@ export default function OrdersPage() {
       addDraftOrderLine(order, {
         id: `${product.id}-${Date.now()}`,
         itemId: product.id,
-        name: product.en,
+        name: label(product),
         quantity: 1,
         unitPrice: money(product.price),
         modifiers: [],

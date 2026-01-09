@@ -69,5 +69,19 @@ describe('draft order', () => {
     expect(() => validateDraftOrder({ ...order, lines: [line, line] })).toThrow(
       'unique',
     )
+    expect(() =>
+      validateDraftOrder({ ...order, currency: 'USD' as never }),
+    ).toThrow('currency')
+    expect(() =>
+      validateDraftOrder({
+        ...order,
+        lines: [
+          {
+            ...line,
+            taxRate: { ...vat, basisPoints: 1.5, mode: 'bogus' as never },
+          },
+        ],
+      }),
+    ).toThrow()
   })
 })
