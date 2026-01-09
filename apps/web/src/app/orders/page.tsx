@@ -1,7 +1,7 @@
 'use client'
 
 import { Minus, Plus, Search, ShoppingBag, Trash2 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import {
   addDraftOrderLine,
@@ -16,6 +16,11 @@ import { useLocale } from '@/components/locale-provider'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import {
+  ORDER_STORAGE_KEY,
+  parseStoredOrder,
+  serializeOrder,
+} from '@/lib/order-storage'
 
 const vat = {
   id: 'vat7',
@@ -77,6 +82,7 @@ const emptyOrder = (): DraftOrder => ({
 export default function OrdersPage() {
   const { locale, money: formatMoney, t } = useLocale()
   const [order, setOrder] = useState<DraftOrder>(emptyOrder)
+  const [storageReady, setStorageReady] = useState(false)
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('all')
   const label = (product: (typeof products)[number]) =>
@@ -93,6 +99,27 @@ export default function OrdersPage() {
     )
   }, [category, locale, query])
   const total = calculateDraftOrderTotal(order)
+
+  useEffect(() => {
+    const fallback = emptyOrder()
+    try {
+      setOrder(
+        parseStoredOrder(localStorage.getItem(ORDER_STORAGE_KEY), fallback),
+      )
+    } catch {
+      setOrder(fallback)
+    }
+    setStorageReady(true)
+  }, [])
+
+  useEffect(() => {
+    if (!storageReady) return
+    try {
+      localStorage.setItem(ORDER_STORAGE_KEY, serializeOrder(order))
+    } catch {
+      // Ordering remains usable when browser storage is unavailable.
+    }
+  }, [order, storageReady])
 
   const add = (product: (typeof products)[number]) => {
     const existing = order.lines.find((line) => line.itemId === product.id)
