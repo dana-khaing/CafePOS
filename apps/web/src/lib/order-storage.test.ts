@@ -63,5 +63,42 @@ describe('draft order storage', () => {
         fallback,
       ),
     ).toBe(fallback)
+    expect(
+      parseStoredOrder(
+        JSON.stringify({
+          id: 'forged',
+          currency: 'THB',
+          diningMode: 'counter',
+          lines: [
+            {
+              id: 'line',
+              itemId: 'latte',
+              name: 'Latte',
+              quantity: 1,
+              unitPrice: { currency: 'THB', minor: 12000 },
+              modifiers: [
+                {
+                  optionId: 'oat',
+                  name: 'Oat',
+                  priceDelta: { currency: 'THB', minor: 2000 },
+                },
+                {
+                  optionId: 'oat',
+                  name: 'Oat',
+                  priceDelta: { currency: 'THB', minor: 2000 },
+                },
+              ],
+              taxRate: {
+                id: 'vat7',
+                name: 'VAT',
+                basisPoints: 700,
+                mode: 'inclusive',
+              },
+            },
+          ],
+        }),
+        fallback,
+      ),
+    ).toBe(fallback)
   })
 })

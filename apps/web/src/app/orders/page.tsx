@@ -7,6 +7,7 @@ import {
   addDraftOrderLine,
   calculateDraftOrderTotal,
   money,
+  orderLineModifierSignature,
   setDraftOrderDiningMode,
   setDraftOrderLineQuantity,
   type DraftOrder,
@@ -146,14 +147,11 @@ export default function OrdersPage() {
         ? { optionId, name: t('large'), priceDelta: money(2500) }
         : { optionId, name: t('oatMilk'), priceDelta: money(2000) },
     )
-    const signature = selected.slice().sort().join('|')
+    const signature = orderLineModifierSignature(modifiers)
     const existing = order.lines.find(
       (line) =>
         line.itemId === product.id &&
-        line.modifiers
-          .map((modifier) => modifier.optionId)
-          .sort()
-          .join('|') === signature,
+        orderLineModifierSignature(line.modifiers) === signature,
     )
     if (existing) {
       setOrder(
