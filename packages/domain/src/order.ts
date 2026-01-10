@@ -21,6 +21,8 @@ export type DraftOrderLine = Readonly<{
 export type DraftOrder = Readonly<{
   id: string
   currency: Currency
+  diningMode: 'counter' | 'takeaway' | 'table'
+  tableNumber?: string
   lines: readonly DraftOrderLine[]
 }>
 
@@ -28,6 +30,12 @@ export function validateDraftOrder(order: DraftOrder): DraftOrder {
   if (!order.id.trim()) throw new TypeError('Order id is required')
   if (order.currency !== 'THB' && order.currency !== 'MMK')
     throw new TypeError('Order currency is unsupported')
+  if (!['counter', 'takeaway', 'table'].includes(order.diningMode))
+    throw new TypeError('Dining mode is unsupported')
+  if (order.diningMode === 'table' && !order.tableNumber?.trim())
+    throw new TypeError('Table orders require a table number')
+  if (order.diningMode !== 'table' && order.tableNumber !== undefined)
+    throw new TypeError('Only table orders may have a table number')
   const ids = new Set<string>()
   for (const line of order.lines) {
     if (!line.id.trim() || !line.itemId.trim() || !line.name.trim())
@@ -55,6 +63,18 @@ export function validateDraftOrder(order: DraftOrder): DraftOrder {
     }
   }
   return order
+}
+
+export function setDraftOrderDiningMode(
+  order: DraftOrder,
+  diningMode: DraftOrder['diningMode'],
+  tableNumber?: string,
+): DraftOrder {
+  return validateDraftOrder({
+    ...order,
+    diningMode,
+    tableNumber: diningMode === 'table' ? tableNumber : undefined,
+  })
 }
 
 export function addDraftOrderLine(

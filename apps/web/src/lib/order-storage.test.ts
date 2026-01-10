@@ -4,7 +4,12 @@ import { type DraftOrder } from '@cafepos/domain'
 
 import { parseStoredOrder, serializeOrder } from './order-storage'
 
-const fallback: DraftOrder = { id: 'new', currency: 'THB', lines: [] }
+const fallback: DraftOrder = {
+  id: 'new',
+  currency: 'THB',
+  diningMode: 'counter',
+  lines: [],
+}
 
 describe('draft order storage', () => {
   it('round trips a validated draft', () => {
