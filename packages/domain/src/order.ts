@@ -51,9 +51,13 @@ export function validateDraftOrder(order: DraftOrder): DraftOrder {
     )
       throw new TypeError('Order line price is invalid')
     validateTaxRate(line.taxRate)
+    const modifierIds = new Set<string>()
     for (const modifier of line.modifiers) {
       if (!modifier.optionId.trim() || !modifier.name.trim())
         throw new TypeError('Order modifier identity and name are required')
+      if (modifierIds.has(modifier.optionId))
+        throw new TypeError('Order modifier option ids must be unique per line')
+      modifierIds.add(modifier.optionId)
       if (
         modifier.priceDelta.currency !== order.currency ||
         !Number.isSafeInteger(modifier.priceDelta.minor) ||
@@ -63,6 +67,15 @@ export function validateDraftOrder(order: DraftOrder): DraftOrder {
     }
   }
   return order
+}
+
+export function orderLineModifierSignature(
+  modifiers: readonly OrderLineModifier[],
+): string {
+  return modifiers
+    .map((modifier) => modifier.optionId)
+    .sort()
+    .join('|')
 }
 
 export function setDraftOrderDiningMode(

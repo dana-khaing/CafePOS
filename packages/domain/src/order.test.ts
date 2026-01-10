@@ -4,6 +4,7 @@ import { money } from './money'
 import {
   addDraftOrderLine,
   calculateDraftOrderTotal,
+  orderLineModifierSignature,
   setDraftOrderLineQuantity,
   type DraftOrder,
   type DraftOrderLine,
@@ -103,6 +104,27 @@ describe('draft order', () => {
     ).toBe('A12')
     expect(() => validateDraftOrder({ ...order, tableNumber: 'A12' })).toThrow(
       'Only table',
+    )
+  })
+
+  it('rejects duplicate modifier options and creates stable signatures', () => {
+    expect(() =>
+      validateDraftOrder({
+        ...order,
+        lines: [
+          {
+            ...line,
+            modifiers: [line.modifiers[0], line.modifiers[0]],
+          },
+        ],
+      }),
+    ).toThrow('unique')
+    const large = { optionId: 'large', name: 'Large', priceDelta: money(2500) }
+    expect(orderLineModifierSignature([line.modifiers[0], large])).toBe(
+      orderLineModifierSignature([large, line.modifiers[0]]),
+    )
+    expect(orderLineModifierSignature([large])).not.toBe(
+      orderLineModifierSignature([line.modifiers[0]]),
     )
   })
 })
