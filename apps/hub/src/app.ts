@@ -4,7 +4,7 @@ import cors from '@fastify/cors'
 import {
   PRODUCT_NAME,
   type SyncEvent,
-  validateSyncEvent,
+  validateSubmittedOrderEvent,
 } from '@cafepos/domain'
 
 import type { HubConfig } from './config.js'
@@ -44,8 +44,14 @@ export function createHubApp(config: HubConfig, outbox?: FileOutboxStore) {
 
   app.post('/v1/orders', async (request, reply) => {
     if (!outbox) return reply.code(503).send({ error: 'Outbox unavailable' })
+    if (request.headers.authorization !== `Bearer ${config.branchToken}`) {
+      return reply
+        .code(401)
+        .send({ error: 'Branch device authentication required' })
+    }
     try {
-      const event = validateSyncEvent(request.body as SyncEvent)
+      const event = request.body as SyncEvent
+      validateSubmittedOrderEvent(event)
       if (
         event.branchId !== config.branchId ||
         event.entityType !== 'order' ||
