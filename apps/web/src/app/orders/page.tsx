@@ -10,6 +10,7 @@ import {
   orderLineModifierSignature,
   setDraftOrderDiningMode,
   setDraftOrderLineQuantity,
+  submitDraftOrder,
   type DraftOrder,
 } from '@cafepos/domain'
 
@@ -23,6 +24,7 @@ import {
   parseStoredOrder,
   serializeOrder,
 } from '@/lib/order-storage'
+import { enqueueSubmittedOrder } from '@/lib/order-submission'
 
 const vat = {
   id: 'vat7',
@@ -104,6 +106,9 @@ export default function OrdersPage() {
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('all')
   const [choices, setChoices] = useState<Record<string, string[]>>({})
+  const [submission, setSubmission] = useState<
+    'idle' | 'sending' | 'sent' | 'error'
+  >('idle')
   const label = (product: Product) =>
     locale === 'th' ? product.th : product.en
   const shown = useMemo<readonly Product[]>(() => {
@@ -182,6 +187,25 @@ export default function OrdersPage() {
           : [...selected, optionId],
       }
     })
+  }
+
+  const submit = async () => {
+    setSubmission('sending')
+    try {
+      const now = new Date().toISOString()
+      const result = submitDraftOrder(order, {
+        branchId: 'branch-riverside',
+        actorId: 'cashier-local',
+        submittedAt: now,
+        eventId: crypto.randomUUID(),
+      })
+      await enqueueSubmittedOrder(result.event)
+      setOrder(emptyOrder())
+      setChoices({})
+      setSubmission('sent')
+    } catch {
+      setSubmission('error')
+    }
   }
 
   return (
@@ -409,6 +433,22 @@ export default function OrdersPage() {
             )}
           </div>
           <div className="mt-auto border-t pt-4 text-sm">
+            {submission === 'sent' && (
+              <p
+                role="status"
+                className="mb-3 rounded-md bg-primary/10 p-3 text-primary"
+              >
+                {t('orderQueued')}
+              </p>
+            )}
+            {submission === 'error' && (
+              <p
+                role="alert"
+                className="mb-3 rounded-md bg-destructive/10 p-3 text-destructive"
+              >
+                {t('orderSubmitError')}
+              </p>
+            )}
             <div className="flex justify-between">
               <span>{t('subtotal')}</span>
               <span>{formatMoney(total.net.minor)}</span>
@@ -425,8 +465,11 @@ export default function OrdersPage() {
               className="mt-5 w-full"
               size="lg"
               disabled={order.lines.length === 0}
+              onClick={submit}
             >
-              {t('reviewOrder')}
+              {submission === 'sending'
+                ? t('submittingOrder')
+                : t('submitOrder')}
             </Button>
             {order.lines.length > 0 && (
               <Button
