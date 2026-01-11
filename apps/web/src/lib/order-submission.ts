@@ -1,4 +1,29 @@
-import { type SyncEvent, validateSyncEvent } from '@cafepos/domain'
+import {
+  type SyncEvent,
+  validateSubmittedOrderEvent,
+  validateSyncEvent,
+} from '@cafepos/domain'
+
+export const PENDING_ORDER_SUBMISSION_KEY =
+  'cafepos.pending-order-submission.v1'
+
+export function parsePendingOrderSubmission(
+  serialized: string | null,
+): SyncEvent | null {
+  if (!serialized) return null
+  try {
+    const event = JSON.parse(serialized) as SyncEvent
+    validateSubmittedOrderEvent(event)
+    return event
+  } catch {
+    return null
+  }
+}
+
+export function serializePendingOrderSubmission(event: SyncEvent): string {
+  validateSubmittedOrderEvent(event)
+  return JSON.stringify(event)
+}
 
 export async function enqueueSubmittedOrder(
   event: SyncEvent,
