@@ -1,7 +1,11 @@
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
 
-import { PRODUCT_NAME } from '@cafepos/domain'
+import {
+  PRODUCT_NAME,
+  type SyncEvent,
+  validateSyncEvent,
+} from '@cafepos/domain'
 
 import type { HubConfig } from './config.js'
 import type { FileOutboxStore } from './outbox-store.js'
@@ -13,7 +17,7 @@ export function createHubApp(config: HubConfig, outbox?: FileOutboxStore) {
 
   void app.register(cors, {
     origin: [...config.webOrigins],
-    methods: ['GET'],
+    methods: ['GET', 'POST'],
     strictPreflight: true,
   })
 
@@ -37,6 +41,26 @@ export function createHubApp(config: HubConfig, outbox?: FileOutboxStore) {
       ? await outbox.summary()
       : { pending: 0, inflight: 0, total: 0 },
   }))
+
+  app.post('/v1/orders', async (request, reply) => {
+    if (!outbox) return reply.code(503).send({ error: 'Outbox unavailable' })
+    try {
+      const event = validateSyncEvent(request.body as SyncEvent)
+      if (
+        event.branchId !== config.branchId ||
+        event.entityType !== 'order' ||
+        event.operation !== 'upsert'
+      ) {
+        return reply.code(400).send({ error: 'Invalid order event scope' })
+      }
+      await outbox.enqueue(event, event.occurredAt)
+      return reply.code(202).send({ status: 'queued', eventId: event.id })
+    } catch (error) {
+      return reply.code(400).send({
+        error: error instanceof Error ? error.message : 'Invalid order event',
+      })
+    }
+  })
 
   return app
 }
