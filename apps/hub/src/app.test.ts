@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it } from 'vitest'
+import { mkdtemp } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
 import { createHubApp } from './app.js'
+import { FileOutboxStore } from './outbox-store.js'
 
 const apps: ReturnType<typeof createHubApp>[] = []
 const config = {
@@ -61,5 +65,44 @@ describe('branch hub health endpoint', () => {
       status: 'ready',
       outbox: { pending: 0, inflight: 0, total: 0 },
     })
+  })
+
+  it('validates and atomically queues submitted order events', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'cafepos-order-'))
+    const store = new FileOutboxStore(join(directory, 'outbox.json'))
+    const app = createHubApp(config, store)
+    apps.push(app)
+    const event = {
+      id: 'event-1',
+      schemaVersion: 1,
+      branchId: config.branchId,
+      actorId: 'cashier-1',
+      entityType: 'order',
+      entityId: 'order-1',
+      aggregateVersion: 1,
+      operation: 'upsert',
+      occurredAt: '2026-01-11T12:00:00.000Z',
+      payload: { status: 'submitted' },
+    } as const
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/orders',
+      payload: event,
+    })
+    expect(response.statusCode).toBe(202)
+    expect(response.json()).toEqual({ status: 'queued', eventId: 'event-1' })
+    await expect(store.summary()).resolves.toEqual({
+      pending: 1,
+      inflight: 0,
+      total: 1,
+    })
+
+    const wrongBranch = await app.inject({
+      method: 'POST',
+      url: '/v1/orders',
+      payload: { ...event, id: 'event-2', branchId: 'other' },
+    })
+    expect(wrongBranch.statusCode).toBe(400)
   })
 })
