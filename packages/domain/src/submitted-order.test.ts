@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest'
 
 import { money } from './money'
 import { type DraftOrder } from './order'
-import { submitDraftOrder } from './submitted-order'
+import {
+  submitDraftOrder,
+  validateSubmittedOrderEvent,
+} from './submitted-order'
 
 const draft: DraftOrder = {
   id: 'order-1',
@@ -50,5 +53,23 @@ describe('submitted orders', () => {
     expect(() =>
       submitDraftOrder(draft, { ...context, submittedAt: 'nope' }),
     ).toThrow('time')
+  })
+
+  it('deep freezes snapshots and rejects forged payload totals and identity', () => {
+    const result = submitDraftOrder(draft, context)
+    expect(Object.isFrozen(result.order)).toBe(true)
+    expect(Object.isFrozen(result.order.draft.lines[0])).toBe(true)
+    expect(() =>
+      validateSubmittedOrderEvent({ ...result.event, entityId: 'other' }),
+    ).toThrow('envelope')
+    expect(() =>
+      validateSubmittedOrderEvent({
+        ...result.event,
+        payload: {
+          ...(result.event.payload ?? {}),
+          totals: { net: money(0), tax: money(0), gross: money(0) },
+        },
+      }),
+    ).toThrow('totals')
   })
 })

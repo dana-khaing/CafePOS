@@ -125,4 +125,12 @@ describe('sync outbox', () => {
       ),
     ).toThrow('collision')
   })
+
+  it('rejects a second event ID for the same aggregate version', () => {
+    const first = event('evt-01')
+    const outbox = enqueueEvent([], first, now)
+    expect(() =>
+      enqueueEvent(outbox, { ...first, id: 'evt-retry' }, now),
+    ).toThrow('Aggregate version')
+  })
 })
