@@ -3,6 +3,8 @@ import { mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
+import { money, submitDraftOrder } from '@cafepos/domain'
+
 import { createHubApp } from './app.js'
 import { FileOutboxStore } from './outbox-store.js'
 
@@ -15,6 +17,7 @@ const config = {
   publicOrigin: 'https://branch.local.cafepos.test',
   webOrigins: ['http://localhost:3000'],
   outboxPath: './data/outbox.json',
+  branchToken: 'test-branch-device-token',
 } as const
 
 afterEach(async () => {
@@ -72,22 +75,40 @@ describe('branch hub health endpoint', () => {
     const store = new FileOutboxStore(join(directory, 'outbox.json'))
     const app = createHubApp(config, store)
     apps.push(app)
-    const event = {
-      id: 'event-1',
-      schemaVersion: 1,
-      branchId: config.branchId,
-      actorId: 'cashier-1',
-      entityType: 'order',
-      entityId: 'order-1',
-      aggregateVersion: 1,
-      operation: 'upsert',
-      occurredAt: '2026-01-11T12:00:00.000Z',
-      payload: { status: 'submitted' },
-    } as const
+    const { event } = submitDraftOrder(
+      {
+        id: 'order-1',
+        currency: 'THB',
+        diningMode: 'counter',
+        lines: [
+          {
+            id: 'line-1',
+            itemId: 'latte',
+            name: 'Latte',
+            quantity: 1,
+            unitPrice: money(12000),
+            modifiers: [],
+            taxRate: {
+              id: 'vat7',
+              name: 'VAT',
+              basisPoints: 700,
+              mode: 'inclusive',
+            },
+          },
+        ],
+      },
+      {
+        branchId: config.branchId,
+        actorId: 'cashier-1',
+        submittedAt: '2026-01-11T12:00:00.000Z',
+        eventId: 'event-1',
+      },
+    )
 
     const response = await app.inject({
       method: 'POST',
       url: '/v1/orders',
+      headers: { authorization: `Bearer ${config.branchToken}` },
       payload: event,
     })
     expect(response.statusCode).toBe(202)
@@ -101,8 +122,22 @@ describe('branch hub health endpoint', () => {
     const wrongBranch = await app.inject({
       method: 'POST',
       url: '/v1/orders',
+      headers: { authorization: `Bearer ${config.branchToken}` },
       payload: { ...event, id: 'event-2', branchId: 'other' },
     })
     expect(wrongBranch.statusCode).toBe(400)
+    const forged = await app.inject({
+      method: 'POST',
+      url: '/v1/orders',
+      headers: { authorization: `Bearer ${config.branchToken}` },
+      payload: { ...event, id: 'event-3', payload: { status: 'submitted' } },
+    })
+    expect(forged.statusCode).toBe(400)
+    const unauthenticated = await app.inject({
+      method: 'POST',
+      url: '/v1/orders',
+      payload: event,
+    })
+    expect(unauthenticated.statusCode).toBe(401)
   })
 })

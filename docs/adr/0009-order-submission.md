@@ -14,6 +14,9 @@ The web counter sends the event to its branch hub. The hub validates schema,
 branch ownership, entity type, and operation before atomically appending it to
 the durable local outbox. Only a successful `202 queued` response clears the
 browser draft; connectivity or validation failures leave the draft intact.
+Branch write requests require a configured device token. A submission keeps the
+same event ID and timestamp across ambiguous retries, and the outbox rejects a
+second event ID for an aggregate version.
 
 ## Consequences
 

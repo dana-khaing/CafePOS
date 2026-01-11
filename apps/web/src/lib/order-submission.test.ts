@@ -22,10 +22,21 @@ describe('order submission client', () => {
     const fetcher = vi
       .fn<typeof fetch>()
       .mockResolvedValue(new Response(null, { status: 202 }))
-    await enqueueSubmittedOrder(event, fetcher, 'http://hub.test')
+    await enqueueSubmittedOrder(
+      event,
+      fetcher,
+      'http://hub.test',
+      'device-token',
+    )
     expect(fetcher).toHaveBeenCalledWith(
       'http://hub.test/v1/orders',
-      expect.objectContaining({ method: 'POST', body: JSON.stringify(event) }),
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify(event),
+        headers: expect.objectContaining({
+          authorization: 'Bearer device-token',
+        }),
+      }),
     )
   })
 
