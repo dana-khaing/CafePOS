@@ -24,7 +24,12 @@ import {
   parseStoredOrder,
   serializeOrder,
 } from '@/lib/order-storage'
-import { enqueueSubmittedOrder } from '@/lib/order-submission'
+import {
+  PENDING_ORDER_SUBMISSION_KEY,
+  enqueueSubmittedOrder,
+  parsePendingOrderSubmission,
+  serializePendingOrderSubmission,
+} from '@/lib/order-submission'
 
 const vat = {
   id: 'vat7',
@@ -110,11 +115,8 @@ export default function OrdersPage() {
     'idle' | 'sending' | 'sent' | 'error'
   >('idle')
   const submittingRef = useRef(false)
-  const submissionContextRef = useRef<{
-    orderId: string
-    submittedAt: string
-    eventId: string
-  } | null>(null)
+  const pendingEventRef =
+    useRef<ReturnType<typeof parsePendingOrderSubmission>>(null)
   const label = (product: Product) =>
     locale === 'th' ? product.th : product.en
   const shown = useMemo<readonly Product[]>(() => {
@@ -133,9 +135,18 @@ export default function OrdersPage() {
   useEffect(() => {
     const fallback = emptyOrder()
     try {
-      setOrder(
-        parseStoredOrder(localStorage.getItem(ORDER_STORAGE_KEY), fallback),
+      const restored = parseStoredOrder(
+        localStorage.getItem(ORDER_STORAGE_KEY),
+        fallback,
       )
+      setOrder(restored)
+      const pending = parsePendingOrderSubmission(
+        localStorage.getItem(PENDING_ORDER_SUBMISSION_KEY),
+      )
+      if (pending?.entityId === restored.id) {
+        pendingEventRef.current = pending
+        setSubmission('error')
+      }
     } catch {
       setOrder(fallback)
     }
@@ -200,25 +211,24 @@ export default function OrdersPage() {
     submittingRef.current = true
     setSubmission('sending')
     try {
-      const context =
-        submissionContextRef.current?.orderId === order.id
-          ? submissionContextRef.current
-          : {
-              orderId: order.id,
-              submittedAt: new Date().toISOString(),
-              eventId: `order:${order.id}:v1`,
-            }
-      submissionContextRef.current = context
-      const result = submitDraftOrder(order, {
-        branchId: 'branch-riverside',
-        actorId: 'cashier-local',
-        submittedAt: context.submittedAt,
-        eventId: context.eventId,
-      })
-      await enqueueSubmittedOrder(result.event)
+      const event =
+        pendingEventRef.current ??
+        submitDraftOrder(order, {
+          branchId: 'branch-riverside',
+          actorId: 'cashier-local',
+          submittedAt: new Date().toISOString(),
+          eventId: `order:${order.id}:v1`,
+        }).event
+      localStorage.setItem(
+        PENDING_ORDER_SUBMISSION_KEY,
+        serializePendingOrderSubmission(event),
+      )
+      pendingEventRef.current = event
+      await enqueueSubmittedOrder(event)
       setOrder(emptyOrder())
       setChoices({})
-      submissionContextRef.current = null
+      pendingEventRef.current = null
+      localStorage.removeItem(PENDING_ORDER_SUBMISSION_KEY)
       setSubmission('sent')
     } catch {
       setSubmission('error')
@@ -229,7 +239,19 @@ export default function OrdersPage() {
 
   return (
     <AppShell>
-      <fieldset disabled={submission === 'sending'} className="contents">
+      {submission === 'error' && (
+        <div
+          className="fixed inset-x-4 bottom-4 z-50 mx-auto flex max-w-md items-center gap-3 rounded-xl border bg-card p-4 shadow-xl"
+          role="alert"
+        >
+          <p className="flex-1 text-sm">{t('orderSubmitError')}</p>
+          <Button onClick={submit}>{t('retrySubmission')}</Button>
+        </div>
+      )}
+      <fieldset
+        disabled={submission === 'sending' || submission === 'error'}
+        className="contents"
+      >
         <div className="grid min-h-[calc(100dvh-4rem)] lg:grid-cols-[minmax(0,1fr)_24rem]">
           <section className="p-4 md:p-6 lg:p-8">
             <div className="mb-6">

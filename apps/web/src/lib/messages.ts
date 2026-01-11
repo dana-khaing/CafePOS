@@ -89,6 +89,7 @@ export const messages = {
     submittingOrder: 'Submitting…',
     orderQueued: 'Order queued for the kitchen.',
     orderSubmitError: 'Could not reach the branch hub. Your draft is safe.',
+    retrySubmission: 'Retry',
   },
   th: {
     overview: 'ภาพรวม',
@@ -180,6 +181,7 @@ export const messages = {
     submittingOrder: 'กำลังส่ง…',
     orderQueued: 'ส่งออเดอร์เข้าคิวครัวแล้ว',
     orderSubmitError: 'เชื่อมต่อฮับสาขาไม่ได้ ออเดอร์ฉบับร่างยังปลอดภัย',
+    retrySubmission: 'ลองอีกครั้ง',
   },
 } as const
 
