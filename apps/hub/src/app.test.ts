@@ -18,6 +18,7 @@ const config = {
   webOrigins: ['http://localhost:3000'],
   outboxPath: './data/outbox.json',
   branchToken: 'test-branch-device-token',
+  kitchenPath: './data/kitchen.json',
 } as const
 
 afterEach(async () => {
