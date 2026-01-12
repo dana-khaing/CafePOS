@@ -39,7 +39,12 @@ const navigation: ReadonlyArray<{
     icon: ReceiptText,
     available: true,
   },
-  { label: 'kitchen', href: '/', icon: Utensils, available: false },
+  {
+    label: 'kitchen',
+    href: '/kitchen' as Route,
+    icon: Utensils,
+    available: true,
+  },
   { label: 'reports', href: '/', icon: BarChart3, available: false },
   { label: 'settings', href: '/', icon: Settings, available: false },
 ]
