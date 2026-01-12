@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { createKitchenTicket, advanceKitchenTicket } from './kitchen'
+import {
+  advanceKitchenTicket,
+  createKitchenTicket,
+  validateKitchenTicket,
+} from './kitchen'
 import { money } from './money'
 import { submitDraftOrder } from './submitted-order'
 
@@ -42,7 +46,9 @@ describe('kitchen tickets', () => {
     expect(createKitchenTicket(order)).toMatchObject({
       id: 'kitchen:order-1',
       status: 'queued',
-      serviceLabel: 'Table A4',
+      diningMode: 'table',
+      tableNumber: 'A4',
+      version: 1,
       lines: [{ name: 'Latte', quantity: 2, modifiers: ['Oat milk'] }],
     })
   })
@@ -63,5 +69,24 @@ describe('kitchen tickets', () => {
     expect(() =>
       advanceKitchenTicket(preparing, '2026-01-12T09:00:00.000Z'),
     ).toThrow('backwards')
+    expect(() =>
+      advanceKitchenTicket(preparing, '2026-01-12T10:02:00.000Z', 'queued'),
+    ).toThrow('conflict')
+  })
+
+  it('rejects corrupt persisted ticket values', () => {
+    const ticket = createKitchenTicket(order)
+    expect(() =>
+      validateKitchenTicket({ ...ticket, status: 'bogus' as never }),
+    ).toThrow('status')
+    expect(() =>
+      validateKitchenTicket({
+        ...ticket,
+        lines: [{ ...ticket.lines[0], quantity: 1.5 }],
+      }),
+    ).toThrow('quantity')
+    expect(() =>
+      validateKitchenTicket({ ...ticket, updatedAt: 'nope' }),
+    ).toThrow('timestamps')
   })
 })

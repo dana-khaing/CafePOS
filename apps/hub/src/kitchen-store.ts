@@ -6,7 +6,9 @@ import {
   advanceKitchenTicket,
   createKitchenTicket,
   type KitchenTicket,
+  type KitchenTicketStatus,
   type SubmittedOrder,
+  validateKitchenTicket,
 } from '@cafepos/domain'
 
 const operations = new Map<string, Promise<void>>()
@@ -35,7 +37,12 @@ export class FileKitchenStore {
       const value = JSON.parse(await readFile(this.#path, 'utf8')) as unknown
       if (!Array.isArray(value))
         throw new TypeError('Kitchen journal must be an array')
-      return value as KitchenTicket[]
+      const tickets = value.map((ticket) =>
+        validateKitchenTicket(ticket as KitchenTicket),
+      )
+      if (new Set(tickets.map((ticket) => ticket.id)).size !== tickets.length)
+        throw new TypeError('Kitchen journal contains duplicate ticket IDs')
+      return tickets
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
       throw error
@@ -55,8 +62,9 @@ export class FileKitchenStore {
   accept(order: SubmittedOrder) {
     return this.#serialized(async () => {
       const tickets = await this.#read()
-      if (tickets.some((ticket) => ticket.orderId === order.id)) return
+      if (tickets.some((ticket) => ticket.orderId === order.id)) return false
       await this.#write([...tickets, createKitchenTicket(order)])
+      return true
     })
   }
 
@@ -66,16 +74,27 @@ export class FileKitchenStore {
     )
   }
 
-  advance(ticketId: string, updatedAt: string) {
+  advance(
+    ticketId: string,
+    updatedAt: string,
+    expectedStatus: KitchenTicketStatus,
+  ) {
     return this.#serialized(async () => {
       const tickets = await this.#read()
       const ticket = tickets.find((entry) => entry.id === ticketId)
       if (!ticket) throw new Error(`Kitchen ticket not found: ${ticketId}`)
-      const updated = advanceKitchenTicket(ticket, updatedAt)
+      const updated = advanceKitchenTicket(ticket, updatedAt, expectedStatus)
       await this.#write(
         tickets.map((entry) => (entry.id === ticketId ? updated : entry)),
       )
       return updated
+    })
+  }
+
+  remove(orderId: string) {
+    return this.#serialized(async () => {
+      const tickets = await this.#read()
+      await this.#write(tickets.filter((ticket) => ticket.orderId !== orderId))
     })
   }
 }
