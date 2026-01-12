@@ -18,6 +18,7 @@ export default function KitchenPage() {
   const { t } = useLocale()
   const [tickets, setTickets] = useState<readonly KitchenTicket[]>([])
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [busyTicket, setBusyTicket] = useState<string | null>(null)
   const refresh = useCallback(async () => {
     try {
       setTickets(await loadKitchenTickets())
@@ -34,8 +35,10 @@ export default function KitchenPage() {
   }, [refresh])
 
   const advance = async (ticket: KitchenTicket) => {
+    if (busyTicket === ticket.id) return
+    setBusyTicket(ticket.id)
     try {
-      const updated = await advanceKitchenTicketAtHub(ticket.id)
+      const updated = await advanceKitchenTicketAtHub(ticket.id, ticket.status)
       setTickets((current) =>
         updated.status === 'completed'
           ? current.filter((entry) => entry.id !== updated.id)
@@ -43,6 +46,8 @@ export default function KitchenPage() {
       )
     } catch {
       setStatus('error')
+    } finally {
+      setBusyTicket(null)
     }
   }
 
@@ -110,7 +115,11 @@ export default function KitchenPage() {
                     })}
                   </span>
                 </div>
-                <CardTitle className="mt-3">{ticket.serviceLabel}</CardTitle>
+                <CardTitle className="mt-3">
+                  {ticket.diningMode === 'table'
+                    ? `${t('table')} ${ticket.tableNumber}`
+                    : t(ticket.diningMode)}
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <ul className="grid gap-4">
@@ -138,6 +147,7 @@ export default function KitchenPage() {
                 <Button
                   className="mt-6 w-full"
                   size="lg"
+                  disabled={busyTicket === ticket.id}
                   onClick={() => void advance(ticket)}
                 >
                   {action(ticket)}

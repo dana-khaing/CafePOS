@@ -1,4 +1,4 @@
-import { type KitchenTicket } from '@cafepos/domain'
+import { type KitchenTicket, validateKitchenTicket } from '@cafepos/domain'
 
 const hubUrl = process.env.NEXT_PUBLIC_BRANCH_HUB_URL ?? 'http://127.0.0.1:4310'
 const token = process.env.NEXT_PUBLIC_BRANCH_HUB_TOKEN ?? ''
@@ -11,18 +11,25 @@ export async function loadKitchenTickets(fetcher: typeof fetch = fetch) {
   const body = (await response.json()) as { tickets: KitchenTicket[] }
   if (!Array.isArray(body.tickets))
     throw new TypeError('Kitchen response is invalid')
-  return body.tickets
+  return body.tickets.map(validateKitchenTicket)
 }
 
 export async function advanceKitchenTicketAtHub(
   ticketId: string,
+  expectedStatus: KitchenTicket['status'],
   fetcher: typeof fetch = fetch,
 ) {
   const response = await fetcher(
     `${hubUrl}/v1/kitchen/tickets/${encodeURIComponent(ticketId)}/advance`,
-    { method: 'POST', headers },
+    {
+      method: 'POST',
+      headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ expectedStatus }),
+    },
   )
   if (!response.ok)
     throw new Error(`Kitchen update failed (${response.status})`)
-  return ((await response.json()) as { ticket: KitchenTicket }).ticket
+  return validateKitchenTicket(
+    ((await response.json()) as { ticket: KitchenTicket }).ticket,
+  )
 }

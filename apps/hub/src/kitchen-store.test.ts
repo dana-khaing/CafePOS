@@ -43,9 +43,16 @@ describe('file kitchen store', () => {
     await store.accept(submitted)
     await store.accept(submitted)
     expect(await store.list()).toHaveLength(1)
-    await store.advance('kitchen:order-1', '2026-01-12T10:01:00.000Z')
-    await store.advance('kitchen:order-1', '2026-01-12T10:02:00.000Z')
-    await store.advance('kitchen:order-1', '2026-01-12T10:03:00.000Z')
+    await store.advance('kitchen:order-1', '2026-01-12T10:01:00.000Z', 'queued')
+    await expect(
+      store.advance('kitchen:order-1', '2026-01-12T10:01:30.000Z', 'queued'),
+    ).rejects.toThrow('conflict')
+    await store.advance(
+      'kitchen:order-1',
+      '2026-01-12T10:02:00.000Z',
+      'preparing',
+    )
+    await store.advance('kitchen:order-1', '2026-01-12T10:03:00.000Z', 'ready')
     expect(await store.list()).toEqual([])
   })
 })
