@@ -9,10 +9,15 @@ import {
 
 import type { HubConfig } from './config.js'
 import type { FileOutboxStore } from './outbox-store.js'
+import type { FileKitchenStore } from './kitchen-store.js'
 
 const startedAt = new Date()
 
-export function createHubApp(config: HubConfig, outbox?: FileOutboxStore) {
+export function createHubApp(
+  config: HubConfig,
+  outbox?: FileOutboxStore,
+  kitchen?: FileKitchenStore,
+) {
   const app = Fastify({ logger: true })
 
   void app.register(cors, {
@@ -51,7 +56,7 @@ export function createHubApp(config: HubConfig, outbox?: FileOutboxStore) {
     }
     try {
       const event = request.body as SyncEvent
-      validateSubmittedOrderEvent(event)
+      const order = validateSubmittedOrderEvent(event)
       if (
         event.branchId !== config.branchId ||
         event.entityType !== 'order' ||
@@ -60,6 +65,7 @@ export function createHubApp(config: HubConfig, outbox?: FileOutboxStore) {
         return reply.code(400).send({ error: 'Invalid order event scope' })
       }
       await outbox.enqueue(event, event.occurredAt)
+      await kitchen?.accept(order)
       return reply.code(202).send({ status: 'queued', eventId: event.id })
     } catch (error) {
       return reply.code(400).send({
@@ -67,6 +73,41 @@ export function createHubApp(config: HubConfig, outbox?: FileOutboxStore) {
       })
     }
   })
+
+  app.get('/v1/kitchen/tickets', async (request, reply) => {
+    if (request.headers.authorization !== `Bearer ${config.branchToken}`)
+      return reply
+        .code(401)
+        .send({ error: 'Branch device authentication required' })
+    return { tickets: kitchen ? await kitchen.list() : [] }
+  })
+
+  app.post<{ Params: { ticketId: string } }>(
+    '/v1/kitchen/tickets/:ticketId/advance',
+    async (request, reply) => {
+      if (request.headers.authorization !== `Bearer ${config.branchToken}`)
+        return reply
+          .code(401)
+          .send({ error: 'Branch device authentication required' })
+      if (!kitchen)
+        return reply.code(503).send({ error: 'Kitchen unavailable' })
+      try {
+        return {
+          ticket: await kitchen.advance(
+            request.params.ticketId,
+            new Date().toISOString(),
+          ),
+        }
+      } catch (error) {
+        return reply
+          .code(409)
+          .send({
+            error:
+              error instanceof Error ? error.message : 'Kitchen update failed',
+          })
+      }
+    },
+  )
 
   return app
 }
