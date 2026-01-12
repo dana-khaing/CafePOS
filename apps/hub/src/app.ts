@@ -64,8 +64,15 @@ export function createHubApp(
       ) {
         return reply.code(400).send({ error: 'Invalid order event scope' })
       }
-      await outbox.enqueue(event, event.occurredAt)
-      await kitchen?.accept(order)
+      if (!kitchen)
+        return reply.code(503).send({ error: 'Kitchen unavailable' })
+      const created = await kitchen.accept(order)
+      try {
+        await outbox.enqueue(event, event.occurredAt)
+      } catch (error) {
+        if (created) await kitchen.remove(order.id)
+        throw error
+      }
       return reply.code(202).send({ status: 'queued', eventId: event.id })
     } catch (error) {
       return reply.code(400).send({
@@ -82,32 +89,32 @@ export function createHubApp(
     return { tickets: kitchen ? await kitchen.list() : [] }
   })
 
-  app.post<{ Params: { ticketId: string } }>(
-    '/v1/kitchen/tickets/:ticketId/advance',
-    async (request, reply) => {
-      if (request.headers.authorization !== `Bearer ${config.branchToken}`)
-        return reply
-          .code(401)
-          .send({ error: 'Branch device authentication required' })
-      if (!kitchen)
-        return reply.code(503).send({ error: 'Kitchen unavailable' })
-      try {
-        return {
-          ticket: await kitchen.advance(
-            request.params.ticketId,
-            new Date().toISOString(),
-          ),
-        }
-      } catch (error) {
-        return reply
-          .code(409)
-          .send({
-            error:
-              error instanceof Error ? error.message : 'Kitchen update failed',
-          })
+  app.post<{
+    Params: { ticketId: string }
+    Body: { expectedStatus?: string }
+  }>('/v1/kitchen/tickets/:ticketId/advance', async (request, reply) => {
+    if (request.headers.authorization !== `Bearer ${config.branchToken}`)
+      return reply
+        .code(401)
+        .send({ error: 'Branch device authentication required' })
+    if (!kitchen) return reply.code(503).send({ error: 'Kitchen unavailable' })
+    try {
+      const expectedStatus = request.body?.expectedStatus
+      if (!['queued', 'preparing', 'ready'].includes(expectedStatus ?? ''))
+        return reply.code(400).send({ error: 'Expected status is required' })
+      return {
+        ticket: await kitchen.advance(
+          request.params.ticketId,
+          new Date().toISOString(),
+          expectedStatus as 'queued' | 'preparing' | 'ready',
+        ),
       }
-    },
-  )
+    } catch (error) {
+      return reply.code(409).send({
+        error: error instanceof Error ? error.message : 'Kitchen update failed',
+      })
+    }
+  })
 
   return app
 }

@@ -7,6 +7,7 @@ import { money, submitDraftOrder } from '@cafepos/domain'
 
 import { createHubApp } from './app.js'
 import { FileOutboxStore } from './outbox-store.js'
+import { FileKitchenStore } from './kitchen-store.js'
 
 const apps: ReturnType<typeof createHubApp>[] = []
 const config = {
@@ -74,7 +75,8 @@ describe('branch hub health endpoint', () => {
   it('validates and atomically queues submitted order events', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'cafepos-order-'))
     const store = new FileOutboxStore(join(directory, 'outbox.json'))
-    const app = createHubApp(config, store)
+    const kitchen = new FileKitchenStore(join(directory, 'kitchen.json'))
+    const app = createHubApp(config, store, kitchen)
     apps.push(app)
     const { event } = submitDraftOrder(
       {
@@ -140,5 +142,26 @@ describe('branch hub health endpoint', () => {
       payload: event,
     })
     expect(unauthenticated.statusCode).toBe(401)
+
+    const queue = await app.inject({
+      method: 'GET',
+      url: '/v1/kitchen/tickets',
+      headers: { authorization: `Bearer ${config.branchToken}` },
+    })
+    expect(queue.json().tickets).toHaveLength(1)
+    const firstAdvance = await app.inject({
+      method: 'POST',
+      url: '/v1/kitchen/tickets/kitchen%3Aorder-1/advance',
+      headers: { authorization: `Bearer ${config.branchToken}` },
+      payload: { expectedStatus: 'queued' },
+    })
+    expect(firstAdvance.statusCode).toBe(200)
+    const duplicateAdvance = await app.inject({
+      method: 'POST',
+      url: '/v1/kitchen/tickets/kitchen%3Aorder-1/advance',
+      headers: { authorization: `Bearer ${config.branchToken}` },
+      payload: { expectedStatus: 'queued' },
+    })
+    expect(duplicateAdvance.statusCode).toBe(409)
   })
 })
