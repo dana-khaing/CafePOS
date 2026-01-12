@@ -2,6 +2,7 @@ export const PRODUCT_NAME = 'CafePOS'
 
 export * from './access.js'
 export * from './menu.js'
+export * from './kitchen.js'
 export * from './money.js'
 export * from './order.js'
 export * from './outbox.js'
