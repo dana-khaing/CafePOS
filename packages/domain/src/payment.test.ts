@@ -2,9 +2,12 @@ import { describe, expect, it } from 'vitest'
 import { money } from './money'
 import {
   addPaymentTender,
+  completePayment,
   createPaymentSession,
   paymentSummary,
   removePaymentTender,
+  validateCompletedPaymentEvent,
+  validatePaymentSession,
 } from './payment'
 
 describe('payments', () => {
@@ -63,5 +66,25 @@ describe('payments', () => {
     expect(paymentSummary(removePaymentTender(split, 'cash-1')).paid).toEqual(
       money(0),
     )
+    expect(() => validatePaymentSession({ ...split, status: 'paid' })).toThrow(
+      'status',
+    )
+  })
+
+  it('emits and validates a completed payment event', () => {
+    const paid = addPaymentTender(
+      createPaymentSession('pay-1', 'order-1', money(12000)),
+      { id: 'cash-1', method: 'cash', amount: money(15000) },
+    )
+    const result = completePayment(paid, {
+      branchId: 'branch-1',
+      actorId: 'cashier-1',
+      completedAt: '2026-01-13T10:00:00.000Z',
+      eventId: 'payment-event-1',
+    })
+    expect(validateCompletedPaymentEvent(result.event)).toEqual(result.payment)
+    expect(() =>
+      validateCompletedPaymentEvent({ ...result.event, entityId: 'other' }),
+    ).toThrow('envelope')
   })
 })
