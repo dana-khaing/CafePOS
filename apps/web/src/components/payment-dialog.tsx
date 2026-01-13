@@ -32,13 +32,14 @@ export function PaymentDialog({
   const { money: formatMoney, t } = useLocale()
   const [session, setSession] = useState(initial)
   const [cash, setCash] = useState(
-    String(paymentSummary(initial).remaining.minor),
+    (paymentSummary(initial).remaining.minor / 100).toFixed(2),
   )
   const [error, setError] = useState(false)
   const [busy, setBusy] = useState(false)
   const sendingRef = useRef(false)
   const pendingEventRef = useRef<SyncEvent | null>(null)
   const summary = paymentSummary(session)
+  const cashMinor = Math.round(Number(cash) * 100)
 
   useEffect(() => {
     const pending = parsePendingPaymentEvent(
@@ -121,11 +122,11 @@ export function PaymentDialog({
         <div className="my-6 rounded-xl bg-muted p-5">
           <p className="text-sm text-muted-foreground">{t('remaining')}</p>
           <p className="mt-1 text-3xl font-bold">
-            {formatMoney(summary.remaining.minor)}
+            {formatMoney(summary.remaining.minor / 100)}
           </p>
           {summary.paid.minor > 0 && (
             <p className="mt-2 text-sm">
-              {t('paid')}: {formatMoney(summary.paid.minor)}
+              {t('paid')}: {formatMoney(summary.paid.minor / 100)}
             </p>
           )}
         </div>
@@ -168,28 +169,30 @@ export function PaymentDialog({
           {t('cashReceived')}
           <input
             disabled={locked}
-            inputMode="numeric"
+            inputMode="decimal"
             value={cash}
-            onChange={(event) => setCash(event.target.value.replace(/\D/g, ''))}
+            onChange={(event) => {
+              if (/^\d*(?:\.\d{0,2})?$/.test(event.target.value))
+                setCash(event.target.value)
+            }}
             className="mt-2 h-12 w-full rounded-md border bg-background px-3 text-lg"
           />
         </label>
         <Button
           className="mt-3 w-full"
           size="lg"
-          disabled={locked || !Number(cash)}
-          onClick={() => void tender('cash', Number(cash))}
+          disabled={locked || !cashMinor}
+          onClick={() => void tender('cash', cashMinor)}
         >
           <WalletCards aria-hidden="true" />
           {t('acceptCash')}
         </Button>
-        {Number(cash) > summary.remaining.minor &&
-          session.status !== 'paid' && (
-            <p className="mt-3 text-center font-medium text-primary">
-              {t('change')}:{' '}
-              {formatMoney(Number(cash) - summary.remaining.minor)}
-            </p>
-          )}
+        {cashMinor > summary.remaining.minor && session.status !== 'paid' && (
+          <p className="mt-3 text-center font-medium text-primary">
+            {t('change')}:{' '}
+            {formatMoney((cashMinor - summary.remaining.minor) / 100)}
+          </p>
+        )}
       </div>
     </div>
   )
