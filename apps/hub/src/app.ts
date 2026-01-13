@@ -96,12 +96,9 @@ export function createHubApp(
       await outbox.enqueue(event, event.occurredAt)
       return reply.code(202).send({ status: 'queued', eventId: event.id })
     } catch (error) {
-      return reply
-        .code(400)
-        .send({
-          error:
-            error instanceof Error ? error.message : 'Invalid payment event',
-        })
+      return reply.code(400).send({
+        error: error instanceof Error ? error.message : 'Invalid payment event',
+      })
     }
   })
 
