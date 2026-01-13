@@ -5,6 +5,7 @@ import {
   completePayment,
   createPaymentSession,
   paymentSummary,
+  type PaymentSession,
   removePaymentTender,
   validateCompletedPaymentEvent,
   validatePaymentSession,
@@ -69,6 +70,15 @@ describe('payments', () => {
     expect(() => validatePaymentSession({ ...split, status: 'paid' })).toThrow(
       'status',
     )
+    const forged = {
+      ...session,
+      status: 'paid' as const,
+      tenders: [
+        { id: 'cash-1', method: 'cash' as const, amount: money(5000) },
+        { id: 'card-1', method: 'card' as const, amount: money(12000) },
+      ],
+    }
+    expect(() => validatePaymentSession(forged)).toThrow('remaining')
   })
 
   it('emits and validates a completed payment event', () => {
@@ -86,5 +96,21 @@ describe('payments', () => {
     expect(() =>
       validateCompletedPaymentEvent({ ...result.event, entityId: 'other' }),
     ).toThrow('envelope')
+    const forgedEvent = structuredClone(result.event)
+    const payload = forgedEvent.payload as unknown as {
+      session: PaymentSession
+      summary: ReturnType<typeof paymentSummary>
+    }
+    payload.session = {
+      ...payload.session,
+      tenders: [
+        { id: 'cash-1', method: 'cash', amount: money(5000) },
+        { id: 'card-1', method: 'card', amount: money(12000) },
+      ],
+    }
+    payload.summary = paymentSummary(payload.session)
+    expect(() => validateCompletedPaymentEvent(forgedEvent)).toThrow(
+      'remaining',
+    )
   })
 })

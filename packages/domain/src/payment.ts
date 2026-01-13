@@ -78,7 +78,7 @@ export function validatePaymentSession(
   if (!Array.isArray(session.tenders))
     throw new TypeError('Payment tenders are invalid')
   const ids = new Set<string>()
-  let nonCashMinor = 0
+  let remainingMinor = session.due.minor
   for (const tender of session.tenders) {
     if (!tender.id?.trim() || ids.has(tender.id))
       throw new TypeError('Tender ids must be nonempty and unique')
@@ -91,15 +91,15 @@ export function validatePaymentSession(
       tender.amount.minor < 1
     )
       throw new TypeError('Tender amount is invalid')
-    if (tender.method !== 'cash') nonCashMinor += tender.amount.minor
+    if (tender.method !== 'cash' && tender.amount.minor > remainingMinor)
+      throw new TypeError('Non-cash tender exceeds remaining balance')
+    remainingMinor = Math.max(0, remainingMinor - tender.amount.minor)
     if (
       tender.reference !== undefined &&
       (typeof tender.reference !== 'string' || !tender.reference.trim())
     )
       throw new TypeError('Payment reference cannot be empty')
   }
-  if (nonCashMinor > session.due.minor)
-    throw new TypeError('Non-cash tenders exceed payment due')
   const expected =
     paymentSummary(session).remaining.minor === 0 ? 'paid' : 'open'
   if (session.status !== expected)
