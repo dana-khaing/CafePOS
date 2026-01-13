@@ -3,7 +3,13 @@ import { mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { money, submitDraftOrder } from '@cafepos/domain'
+import {
+  addPaymentTender,
+  completePayment,
+  createPaymentSession,
+  money,
+  submitDraftOrder,
+} from '@cafepos/domain'
 
 import { createHubApp } from './app.js'
 import { FileOutboxStore } from './outbox-store.js'
@@ -163,5 +169,37 @@ describe('branch hub health endpoint', () => {
       payload: { expectedStatus: 'queued' },
     })
     expect(duplicateAdvance.statusCode).toBe(409)
+  })
+
+  it('authenticates and queues validated payment events', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'cafepos-payment-'))
+    const store = new FileOutboxStore(join(directory, 'outbox.json'))
+    const app = createHubApp(config, store)
+    apps.push(app)
+    const session = addPaymentTender(
+      createPaymentSession('payment-1', 'order-1', money(12000)),
+      { id: 'cash-1', method: 'cash', amount: money(15000) },
+    )
+    const { event } = completePayment(session, {
+      branchId: config.branchId,
+      actorId: 'cashier-1',
+      completedAt: '2026-01-13T12:00:00.000Z',
+      eventId: 'payment-event-1',
+    })
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/payments',
+      headers: { authorization: `Bearer ${config.branchToken}` },
+      payload: event,
+    })
+    expect(response.statusCode).toBe(202)
+    await expect(store.summary()).resolves.toMatchObject({ pending: 1 })
+    const forged = await app.inject({
+      method: 'POST',
+      url: '/v1/payments',
+      headers: { authorization: `Bearer ${config.branchToken}` },
+      payload: { ...event, payload: { status: 'paid' } },
+    })
+    expect(forged.statusCode).toBe(400)
   })
 })
