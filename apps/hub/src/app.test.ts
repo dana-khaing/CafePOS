@@ -201,5 +201,29 @@ describe('branch hub health endpoint', () => {
       payload: { ...event, payload: { status: 'paid' } },
     })
     expect(forged.statusCode).toBe(400)
+    const forgedMixedTender = structuredClone(event)
+    const forgedPayload = forgedMixedTender.payload as unknown as {
+      session: typeof session
+      summary: ReturnType<typeof import('@cafepos/domain').paymentSummary>
+    }
+    forgedPayload.session = {
+      ...session,
+      tenders: [
+        { id: 'cash-1', method: 'cash', amount: money(5000) },
+        { id: 'card-1', method: 'card', amount: money(12000) },
+      ],
+    }
+    forgedPayload.summary = {
+      paid: money(17000),
+      remaining: money(0),
+      change: money(5000),
+    }
+    const forgedResponse = await app.inject({
+      method: 'POST',
+      url: '/v1/payments',
+      headers: { authorization: `Bearer ${config.branchToken}` },
+      payload: forgedMixedTender,
+    })
+    expect(forgedResponse.statusCode).toBe(400)
   })
 })
