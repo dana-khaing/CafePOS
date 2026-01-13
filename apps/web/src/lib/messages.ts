@@ -101,6 +101,17 @@ export const messages = {
     startPreparing: 'Start preparing',
     markReady: 'Mark ready',
     completeTicket: 'Complete',
+    takePayment: 'Take payment',
+    order: 'Order',
+    remaining: 'Remaining',
+    paymentError:
+      'The payment may already be queued. Retry safely to confirm it.',
+    retryPayment: 'Retry payment',
+    card: 'Card',
+    qr: 'QR payment',
+    cashReceived: 'Cash received (baht)',
+    acceptCash: 'Accept cash',
+    change: 'Change',
   },
   th: {
     overview: 'ภาพรวม',
@@ -204,6 +215,17 @@ export const messages = {
     startPreparing: 'เริ่มทำ',
     markReady: 'ทำเสร็จแล้ว',
     completeTicket: 'ปิดรายการ',
+    takePayment: 'รับชำระเงิน',
+    order: 'ออเดอร์',
+    remaining: 'ยอดคงเหลือ',
+    paymentError:
+      'การชำระเงินอาจเข้าคิวแล้ว ลองอีกครั้งอย่างปลอดภัยเพื่อยืนยัน',
+    retryPayment: 'ลองชำระเงินอีกครั้ง',
+    card: 'บัตร',
+    qr: 'ชำระผ่านคิวอาร์',
+    cashReceived: 'เงินสดที่รับ (บาท)',
+    acceptCash: 'รับเงินสด',
+    change: 'เงินทอน',
   },
 } as const
 

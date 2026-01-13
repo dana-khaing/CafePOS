@@ -11,11 +11,15 @@ import {
   setDraftOrderDiningMode,
   setDraftOrderLineQuantity,
   submitDraftOrder,
+  createPaymentSession,
+  validateSubmittedOrderEvent,
   type DraftOrder,
+  type PaymentSession,
 } from '@cafepos/domain'
 
 import { AppShell } from '@/components/app-shell'
 import { useLocale } from '@/components/locale-provider'
+import { PaymentDialog } from '@/components/payment-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -30,6 +34,11 @@ import {
   parsePendingOrderSubmission,
   serializePendingOrderSubmission,
 } from '@/lib/order-submission'
+import {
+  PAYMENT_STORAGE_KEY,
+  parseStoredPayment,
+  serializePayment,
+} from '@/lib/payment-storage'
 
 const vat = {
   id: 'vat7',
@@ -114,6 +123,7 @@ export default function OrdersPage() {
   const [submission, setSubmission] = useState<
     'idle' | 'sending' | 'sent' | 'error'
   >('idle')
+  const [payment, setPayment] = useState<PaymentSession | null>(null)
   const submittingRef = useRef(false)
   const pendingEventRef =
     useRef<ReturnType<typeof parsePendingOrderSubmission>>(null)
@@ -147,6 +157,7 @@ export default function OrdersPage() {
         pendingEventRef.current = pending
         setSubmission('error')
       }
+      setPayment(parseStoredPayment(localStorage.getItem(PAYMENT_STORAGE_KEY)))
     } catch {
       setOrder(fallback)
     }
@@ -225,10 +236,16 @@ export default function OrdersPage() {
       )
       pendingEventRef.current = event
       await enqueueSubmittedOrder(event)
-      setOrder(emptyOrder())
-      setChoices({})
       pendingEventRef.current = null
       localStorage.removeItem(PENDING_ORDER_SUBMISSION_KEY)
+      const submitted = validateSubmittedOrderEvent(event)
+      const nextPayment = createPaymentSession(
+        `payment-${submitted.id}`,
+        submitted.id,
+        submitted.totals.gross,
+      )
+      localStorage.setItem(PAYMENT_STORAGE_KEY, serializePayment(nextPayment))
+      setPayment(nextPayment)
       setSubmission('sent')
     } catch {
       setSubmission('error')
@@ -239,6 +256,17 @@ export default function OrdersPage() {
 
   return (
     <AppShell>
+      {payment && (
+        <PaymentDialog
+          initial={payment}
+          onComplete={() => {
+            setPayment(null)
+            setOrder(emptyOrder())
+            setChoices({})
+            setSubmission('idle')
+          }}
+        />
+      )}
       {submission === 'error' && (
         <div
           className="fixed inset-x-4 bottom-4 z-50 mx-auto flex max-w-md items-center gap-3 rounded-xl border bg-card p-4 shadow-xl"
@@ -249,7 +277,9 @@ export default function OrdersPage() {
         </div>
       )}
       <fieldset
-        disabled={submission === 'sending' || submission === 'error'}
+        disabled={
+          submission === 'sending' || submission === 'error' || Boolean(payment)
+        }
         className="contents"
       >
         <div className="grid min-h-[calc(100dvh-4rem)] lg:grid-cols-[minmax(0,1fr)_24rem]">
