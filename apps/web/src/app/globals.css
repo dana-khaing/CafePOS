@@ -81,3 +81,28 @@ textarea {
   outline: 3px solid color-mix(in oklab, var(--ring) 60%, transparent);
   outline-offset: 2px;
 }
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .receipt-overlay,
+  .receipt-overlay * {
+    visibility: visible;
+  }
+  .receipt-overlay {
+    position: absolute;
+    inset: 0;
+    display: block;
+    padding: 0;
+    background: white;
+  }
+  .receipt-paper {
+    margin: 0 auto;
+    border: 0;
+    box-shadow: none;
+  }
+  .receipt-actions {
+    display: none;
+  }
+}
