@@ -58,8 +58,28 @@ describe('receipt', () => {
     expect(() => validateReceipt({ ...receipt, branchId: 'other' })).toThrow(
       'match',
     )
+    expect(() => validateReceipt({ ...receipt, number: 'R-FORGED' })).toThrow(
+      'canonical',
+    )
+    expect(() =>
+      validateReceipt({
+        ...receipt,
+        payment: {
+          ...receipt.payment,
+          summary: { ...receipt.payment.summary, change: money(999) },
+        },
+      }),
+    ).toThrow('summary')
     expect(() =>
       createReceipt({ ...order, id: 'other-order' }, payment),
     ).toThrow('match')
+  })
+
+  it('deep freezes the order and payment snapshot', () => {
+    const mutablePayment = structuredClone(payment)
+    const receipt = createReceipt(structuredClone(order), mutablePayment)
+    expect(Object.isFrozen(receipt.payment.session.tenders)).toBe(true)
+    ;(mutablePayment.session.tenders[0]!.amount as { minor: number }).minor = 1
+    expect(receipt.payment.session.tenders[0]!.amount.minor).toBe(15000)
   })
 })

@@ -2,6 +2,7 @@
 
 import { Printer, ReceiptText } from 'lucide-react'
 import type { Receipt } from '@cafepos/domain'
+import { useEffect, useRef, type KeyboardEvent } from 'react'
 import { useLocale } from './locale-provider'
 import { Button } from './ui/button'
 
@@ -12,14 +13,39 @@ export function ReceiptDialog({
   receipt: Receipt
   onDone: () => void
 }) {
-  const { money, t } = useLocale()
+  const { locale, money, t } = useLocale()
+  const dialogRef = useRef<HTMLDivElement>(null)
   const amount = (minor: number) => money(minor / 100)
+  useEffect(() => {
+    dialogRef.current?.focus()
+  }, [])
+  const containFocus = (event: KeyboardEvent) => {
+    if (event.key !== 'Tab') return
+    const controls = dialogRef.current?.querySelectorAll<HTMLElement>('button')
+    if (!controls?.length) return
+    const first = controls[0]!
+    const last = controls[controls.length - 1]!
+    if (
+      event.shiftKey &&
+      (document.activeElement === first ||
+        document.activeElement === dialogRef.current)
+    ) {
+      event.preventDefault()
+      last.focus()
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault()
+      first.focus()
+    }
+  }
   return (
     <div
       className="receipt-overlay fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-background/90 p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="receipt-title"
+      ref={dialogRef}
+      tabIndex={-1}
+      onKeyDown={containFocus}
     >
       <article className="receipt-paper w-full max-w-md rounded-2xl border bg-card p-6 shadow-2xl">
         <header className="text-center">
@@ -37,7 +63,7 @@ export function ReceiptDialog({
           <dd className="text-end font-mono">{receipt.number}</dd>
           <dt>{t('issuedAt')}</dt>
           <dd className="text-end">
-            {new Intl.DateTimeFormat(undefined, {
+            {new Intl.DateTimeFormat(locale === 'th' ? 'th-TH' : 'en-GB', {
               dateStyle: 'medium',
               timeStyle: 'short',
             }).format(new Date(receipt.issuedAt))}
