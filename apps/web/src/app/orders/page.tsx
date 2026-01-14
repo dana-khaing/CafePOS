@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   addDraftOrderLine,
   calculateDraftOrderTotal,
+  createReceipt,
   money,
   orderLineModifierSignature,
   setDraftOrderDiningMode,
@@ -15,11 +16,13 @@ import {
   validateSubmittedOrderEvent,
   type DraftOrder,
   type PaymentSession,
+  type Receipt,
 } from '@cafepos/domain'
 
 import { AppShell } from '@/components/app-shell'
 import { useLocale } from '@/components/locale-provider'
 import { PaymentDialog } from '@/components/payment-dialog'
+import { ReceiptDialog } from '@/components/receipt-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -39,6 +42,11 @@ import {
   parseStoredPayment,
   serializePayment,
 } from '@/lib/payment-storage'
+import {
+  RECEIPT_STORAGE_KEY,
+  parseStoredReceipt,
+  serializeReceipt,
+} from '@/lib/receipt-storage'
 
 const vat = {
   id: 'vat7',
@@ -124,6 +132,7 @@ export default function OrdersPage() {
     'idle' | 'sending' | 'sent' | 'error'
   >('idle')
   const [payment, setPayment] = useState<PaymentSession | null>(null)
+  const [receipt, setReceipt] = useState<Receipt | null>(null)
   const submittingRef = useRef(false)
   const pendingEventRef =
     useRef<ReturnType<typeof parsePendingOrderSubmission>>(null)
@@ -158,6 +167,7 @@ export default function OrdersPage() {
         setSubmission('error')
       }
       setPayment(parseStoredPayment(localStorage.getItem(PAYMENT_STORAGE_KEY)))
+      setReceipt(parseStoredReceipt(localStorage.getItem(RECEIPT_STORAGE_KEY)))
     } catch {
       setOrder(fallback)
     }
@@ -259,11 +269,26 @@ export default function OrdersPage() {
       {payment && (
         <PaymentDialog
           initial={payment}
-          onComplete={() => {
+          onComplete={(completedPayment) => {
+            const completedReceipt = createReceipt(order, completedPayment)
+            localStorage.setItem(
+              RECEIPT_STORAGE_KEY,
+              serializeReceipt(completedReceipt),
+            )
+            setReceipt(completedReceipt)
             setPayment(null)
             setOrder(emptyOrder())
             setChoices({})
             setSubmission('idle')
+          }}
+        />
+      )}
+      {receipt && (
+        <ReceiptDialog
+          receipt={receipt}
+          onDone={() => {
+            localStorage.removeItem(RECEIPT_STORAGE_KEY)
+            setReceipt(null)
           }}
         />
       )}
