@@ -47,6 +47,12 @@ import {
   parseStoredReceipt,
   serializeReceipt,
 } from '@/lib/receipt-storage'
+import {
+  HISTORY_STORAGE_KEY,
+  appendReceipt,
+  parseSaleHistory,
+  serializeSaleHistory,
+} from '@/lib/history-storage'
 
 const vat = {
   id: 'vat7',
@@ -274,6 +280,15 @@ export default function OrdersPage() {
             localStorage.setItem(
               RECEIPT_STORAGE_KEY,
               serializeReceipt(completedReceipt),
+            )
+            localStorage.setItem(
+              HISTORY_STORAGE_KEY,
+              serializeSaleHistory(
+                appendReceipt(
+                  parseSaleHistory(localStorage.getItem(HISTORY_STORAGE_KEY)),
+                  completedReceipt,
+                ),
+              ),
             )
             setReceipt(completedReceipt)
             setPayment(null)
