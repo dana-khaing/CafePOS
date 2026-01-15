@@ -68,6 +68,9 @@ describe('refund journal', () => {
       createdAt: '2026-01-15T11:00:00.000Z',
     })
     await store.accept(receipt, first.event)
+    await expect(store.accept(receipt, first.event)).resolves.toEqual(
+      first.refund,
+    )
     await expect(store.accept(receipt, forgedSecond.event)).rejects.toThrow(
       'exceeds',
     )

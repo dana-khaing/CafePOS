@@ -85,6 +85,14 @@ export class FileRefundStore {
         JSON.stringify(existingReceipt) !== JSON.stringify(receipt)
       )
         throw new TypeError('Receipt identity collision')
+      const existingRefund = journal.refunds.find(
+        (entry) => entry.id === refund.id,
+      )
+      if (existingRefund) {
+        if (JSON.stringify(existingRefund) !== JSON.stringify(refund))
+          throw new TypeError('Refund identity collision')
+        return existingRefund
+      }
       const previous = journal.refunds.filter(
         (entry) => entry.receiptId === receipt.id,
       )
@@ -98,11 +106,9 @@ export class FileRefundStore {
       })
       if (JSON.stringify(rebuilt.event) !== JSON.stringify(event))
         throw new TypeError('Refund event does not match validated command')
-      if (!journal.refunds.some((entry) => entry.id === refund.id)) {
-        if (!existingReceipt) journal.receipts.push(receipt)
-        journal.refunds.push(refund)
-        await this.#write(journal)
-      }
+      if (!existingReceipt) journal.receipts.push(receipt)
+      journal.refunds.push(refund)
+      await this.#write(journal)
       return refund
     })
   }
