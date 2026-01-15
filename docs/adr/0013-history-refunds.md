@@ -13,13 +13,15 @@ above the original gross amount, currency changes, backdating, duplicate IDs,
 and cashier authorization. Refund creation requires a manager, admin, or owner.
 
 Before network transmission, the browser stores the exact refund event in the
-ledger. An ambiguous failure retries that event unchanged. The authenticated
-branch hub validates its envelope and authorization claim, enforces branch
-scope, and queues it idempotently in the durable outbox.
+ledger and reserves its amount. An ambiguous failure retries that event
+unchanged. Each attempt requires a manager approval PIN, verified only by the
+branch hub. The hub also stores the supplied validated receipt and accepted
+refunds in a private journal, independently enforcing receipt identity,
+chronology, and the cumulative cap before queueing the event.
 
 ## Consequences
 
 Sale history preserves both the original financial record and its subsequent
-adjustments. The current role assertion originates on the trusted branch
-device; a future staff-session service should replace that local assertion
-with a signed manager re-authentication claim.
+adjustments. The local manager PIN is an interim branch-device control; a future
+staff-session service should replace it with a signed manager re-authentication
+claim and per-manager audit identity.

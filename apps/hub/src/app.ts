@@ -12,6 +12,7 @@ import {
 import type { HubConfig } from './config.js'
 import type { FileOutboxStore } from './outbox-store.js'
 import type { FileKitchenStore } from './kitchen-store.js'
+import type { FileRefundStore } from './refund-store.js'
 
 const startedAt = new Date()
 
@@ -19,6 +20,7 @@ export function createHubApp(
   config: HubConfig,
   outbox?: FileOutboxStore,
   kitchen?: FileKitchenStore,
+  refunds?: FileRefundStore,
 ) {
   const app = Fastify({ logger: true })
 
@@ -105,15 +107,24 @@ export function createHubApp(
 
   app.post('/v1/refunds', async (request, reply) => {
     if (!outbox) return reply.code(503).send({ error: 'Outbox unavailable' })
+    if (!refunds)
+      return reply.code(503).send({ error: 'Refund journal unavailable' })
     if (request.headers.authorization !== `Bearer ${config.branchToken}`)
       return reply
         .code(401)
         .send({ error: 'Branch device authentication required' })
+    if (request.headers['x-manager-pin'] !== config.refundApprovalPin)
+      return reply.code(403).send({ error: 'Manager approval required' })
     try {
-      const event = request.body as SyncEvent
+      const command = request.body as {
+        receipt: import('@cafepos/domain').Receipt
+        event: SyncEvent
+      }
+      const event = command.event
       const refund = validateRefundEvent(event)
       if (refund.branchId !== config.branchId)
         return reply.code(400).send({ error: 'Invalid refund branch' })
+      await refunds.accept(command.receipt, event)
       await outbox.enqueue(event, event.occurredAt)
       return reply.code(202).send({ status: 'queued', eventId: event.id })
     } catch (error) {

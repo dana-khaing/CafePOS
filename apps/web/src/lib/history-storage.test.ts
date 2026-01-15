@@ -76,8 +76,20 @@ describe('sale history storage', () => {
           refunds: [{ id: 'forged' }],
           pendingRefunds: [],
         }),
-      ),
-    ).toEqual(emptyHistory())
+      ).receipts,
+    ).toEqual([receipt])
+    expect(() =>
+      appendReceipt(appendReceipt(emptyHistory(), receipt), {
+        ...receipt,
+        order: {
+          ...receipt.order,
+          lines: receipt.order.lines.map((line) => ({
+            ...line,
+            name: 'Forged name',
+          })),
+        },
+      }),
+    ).toThrow('collision')
   })
 
   it('counts unresolved refund events against the refundable balance', () => {

@@ -32,6 +32,8 @@ export default function HistoryPage() {
   const [selected, setSelected] = useState<Receipt | null>(null)
   const [amount, setAmount] = useState('')
   const [reason, setReason] = useState('')
+  const [managerPin, setManagerPin] = useState('')
+  const [pendingRetry, setPendingRetry] = useState<SyncEvent | null>(null)
   const [error, setError] = useState(false)
   const sendingRef = useRef(false)
   useEffect(
@@ -61,19 +63,21 @@ export default function HistoryPage() {
   const remaining = (receipt: Receipt) =>
     receipt.totals.gross.minor -
     refundedTotal(refundsFor(receipt), receipt.totals.gross.currency).minor
-  const send = async (event: SyncEvent) => {
+  const send = async (receipt: Receipt, event: SyncEvent) => {
     if (sendingRef.current) return
     sendingRef.current = true
     setError(false)
     try {
       const staged = stageRefund(history, event)
       save(staged)
-      await enqueueRefund(event)
+      await enqueueRefund(receipt, event, managerPin)
       const settled = settleRefund(staged, event.id)
       save(settled)
       setSelected(null)
       setAmount('')
       setReason('')
+      setManagerPin('')
+      setPendingRetry(null)
     } catch {
       setError(true)
     } finally {
@@ -82,6 +86,10 @@ export default function HistoryPage() {
   }
   const submit = () => {
     if (!selected) return
+    if (pendingRetry) {
+      void send(selected, pendingRetry)
+      return
+    }
     try {
       const result = createRefund(selected, refundsFor(selected), {
         id: crypto.randomUUID(),
@@ -94,7 +102,7 @@ export default function HistoryPage() {
         ),
         createdAt: new Date().toISOString(),
       })
-      void send(result.event)
+      void send(selected, result.event)
     } catch {
       setError(true)
     }
@@ -113,7 +121,19 @@ export default function HistoryPage() {
             <Button
               key={event.id}
               variant="outline"
-              onClick={() => void send(event)}
+              onClick={() => {
+                const refund = validateRefundEvent(event)
+                const receipt = history.receipts.find(
+                  (entry) => entry.id === refund.receiptId,
+                )
+                if (receipt) {
+                  setSelected(receipt)
+                  setPendingRetry(event)
+                  setAmount((refund.amount.minor / 100).toFixed(2))
+                  setReason(refund.reason)
+                  setManagerPin('')
+                }
+              }}
             >
               {t('retryRefund')} · {validateRefundEvent(event).id}
             </Button>
@@ -228,12 +248,37 @@ export default function HistoryPage() {
                   onChange={(event) => setReason(event.target.value)}
                 />
               </label>
+              <label className="mt-4 block text-sm font-medium">
+                {t('managerPin')}
+                <input
+                  className="mt-2 h-11 w-full rounded-md border bg-background px-3"
+                  type="password"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  value={managerPin}
+                  onChange={(event) =>
+                    setManagerPin(event.target.value.replace(/\D/g, ''))
+                  }
+                />
+              </label>
               <div className="mt-6 grid grid-cols-2 gap-3">
-                <Button variant="outline" onClick={() => setSelected(null)}>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSelected(null)
+                    setPendingRetry(null)
+                    setManagerPin('')
+                  }}
+                >
                   {t('cancel')}
                 </Button>
                 <Button
-                  disabled={!reason.trim() || !Number(amount)}
+                  disabled={
+                    !reason.trim() ||
+                    !/^\d+(?:\.\d{1,2})?$/.test(amount) ||
+                    !Number(amount) ||
+                    managerPin.length < 4
+                  }
                   onClick={submit}
                 >
                   {t('confirmRefund')}

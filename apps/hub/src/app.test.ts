@@ -16,6 +16,7 @@ import {
 import { createHubApp } from './app.js'
 import { FileOutboxStore } from './outbox-store.js'
 import { FileKitchenStore } from './kitchen-store.js'
+import { FileRefundStore } from './refund-store.js'
 
 const apps: ReturnType<typeof createHubApp>[] = []
 const config = {
@@ -28,6 +29,8 @@ const config = {
   outboxPath: './data/outbox.json',
   branchToken: 'test-branch-device-token',
   kitchenPath: './data/kitchen.json',
+  refundPath: './data/refunds.json',
+  refundApprovalPin: '2468',
 } as const
 
 afterEach(async () => {
@@ -232,7 +235,8 @@ describe('branch hub health endpoint', () => {
   it('authenticates and queues authorized refund events', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'cafepos-refund-'))
     const store = new FileOutboxStore(join(directory, 'outbox.json'))
-    const app = createHubApp(config, store)
+    const refundStore = new FileRefundStore(join(directory, 'refunds.json'))
+    const app = createHubApp(config, store, undefined, refundStore)
     apps.push(app)
     const order = {
       id: 'order-refund',
@@ -279,16 +283,32 @@ describe('branch hub health endpoint', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/v1/refunds',
-      headers: { authorization: `Bearer ${config.branchToken}` },
-      payload: event,
+      headers: {
+        authorization: `Bearer ${config.branchToken}`,
+        'x-manager-pin': config.refundApprovalPin,
+      },
+      payload: { receipt, event },
     })
     expect(response.statusCode).toBe(202)
     const forged = await app.inject({
       method: 'POST',
       url: '/v1/refunds',
-      headers: { authorization: `Bearer ${config.branchToken}` },
-      payload: { ...event, branchId: 'other' },
+      headers: {
+        authorization: `Bearer ${config.branchToken}`,
+        'x-manager-pin': config.refundApprovalPin,
+      },
+      payload: { receipt, event: { ...event, branchId: 'other' } },
     })
     expect(forged.statusCode).toBe(400)
+    const denied = await app.inject({
+      method: 'POST',
+      url: '/v1/refunds',
+      headers: {
+        authorization: `Bearer ${config.branchToken}`,
+        'x-manager-pin': 'wrong',
+      },
+      payload: { receipt, event },
+    })
+    expect(denied.statusCode).toBe(403)
   })
 })
