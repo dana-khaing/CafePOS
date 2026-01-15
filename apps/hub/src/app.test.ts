@@ -7,6 +7,8 @@ import {
   addPaymentTender,
   completePayment,
   createPaymentSession,
+  createReceipt,
+  createRefund,
   money,
   submitDraftOrder,
 } from '@cafepos/domain'
@@ -14,6 +16,7 @@ import {
 import { createHubApp } from './app.js'
 import { FileOutboxStore } from './outbox-store.js'
 import { FileKitchenStore } from './kitchen-store.js'
+import { FileRefundStore } from './refund-store.js'
 
 const apps: ReturnType<typeof createHubApp>[] = []
 const config = {
@@ -26,6 +29,8 @@ const config = {
   outboxPath: './data/outbox.json',
   branchToken: 'test-branch-device-token',
   kitchenPath: './data/kitchen.json',
+  refundPath: './data/refunds.json',
+  refundApprovalPin: '2468',
 } as const
 
 afterEach(async () => {
@@ -225,5 +230,85 @@ describe('branch hub health endpoint', () => {
       payload: forgedMixedTender,
     })
     expect(forgedResponse.statusCode).toBe(400)
+  })
+
+  it('authenticates and queues authorized refund events', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'cafepos-refund-'))
+    const store = new FileOutboxStore(join(directory, 'outbox.json'))
+    const refundStore = new FileRefundStore(join(directory, 'refunds.json'))
+    const app = createHubApp(config, store, undefined, refundStore)
+    apps.push(app)
+    const order = {
+      id: 'order-refund',
+      currency: 'THB' as const,
+      diningMode: 'counter' as const,
+      lines: [
+        {
+          id: 'line-1',
+          itemId: 'latte',
+          name: 'Latte',
+          quantity: 1,
+          unitPrice: money(12000),
+          modifiers: [],
+          taxRate: {
+            id: 'vat',
+            name: 'VAT',
+            basisPoints: 700,
+            mode: 'inclusive' as const,
+          },
+        },
+      ],
+    }
+    const session = addPaymentTender(
+      createPaymentSession('payment-refund', order.id, money(12000)),
+      { id: 'cash-1', method: 'cash', amount: money(12000) },
+    )
+    const receipt = createReceipt(
+      order,
+      completePayment(session, {
+        branchId: config.branchId,
+        actorId: 'cashier-1',
+        completedAt: '2026-01-15T09:00:00.000Z',
+        eventId: 'payment-refund-event',
+      }).payment,
+    )
+    const { event } = createRefund(receipt, [], {
+      id: 'refund-1',
+      actorId: 'manager-1',
+      actorRole: 'manager',
+      reason: 'Customer request',
+      amount: money(5000),
+      createdAt: '2026-01-15T10:00:00.000Z',
+    })
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/refunds',
+      headers: {
+        authorization: `Bearer ${config.branchToken}`,
+        'x-manager-pin': config.refundApprovalPin,
+      },
+      payload: { receipt, event },
+    })
+    expect(response.statusCode).toBe(202)
+    const forged = await app.inject({
+      method: 'POST',
+      url: '/v1/refunds',
+      headers: {
+        authorization: `Bearer ${config.branchToken}`,
+        'x-manager-pin': config.refundApprovalPin,
+      },
+      payload: { receipt, event: { ...event, branchId: 'other' } },
+    })
+    expect(forged.statusCode).toBe(400)
+    const denied = await app.inject({
+      method: 'POST',
+      url: '/v1/refunds',
+      headers: {
+        authorization: `Bearer ${config.branchToken}`,
+        'x-manager-pin': 'wrong',
+      },
+      payload: { receipt, event },
+    })
+    expect(denied.statusCode).toBe(403)
   })
 })
