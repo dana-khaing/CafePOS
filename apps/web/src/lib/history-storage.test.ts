@@ -79,4 +79,27 @@ describe('sale history storage', () => {
       ),
     ).toEqual(emptyHistory())
   })
+
+  it('counts unresolved refund events against the refundable balance', () => {
+    const history = appendReceipt(emptyHistory(), receipt)
+    const first = createRefund(receipt, [], {
+      id: 'refund-1',
+      actorId: 'manager',
+      actorRole: 'manager',
+      reason: 'First',
+      amount: money(7000),
+      createdAt: '2026-01-15T10:00:00.000Z',
+    })
+    const second = createRefund(receipt, [], {
+      id: 'refund-2',
+      actorId: 'manager',
+      actorRole: 'manager',
+      reason: 'Second',
+      amount: money(6000),
+      createdAt: '2026-01-15T11:00:00.000Z',
+    })
+    expect(() =>
+      stageRefund(stageRefund(history, first.event), second.event),
+    ).toThrow('exceed')
+  })
 })

@@ -52,8 +52,12 @@ export default function HistoryPage() {
       ),
     [history.receipts, locale, query],
   )
-  const refundsFor = (receipt: Receipt) =>
-    history.refunds.filter((entry) => entry.receiptId === receipt.id)
+  const refundsFor = (receipt: Receipt) => [
+    ...history.refunds.filter((entry) => entry.receiptId === receipt.id),
+    ...history.pendingRefunds
+      .map(validateRefundEvent)
+      .filter((entry) => entry.receiptId === receipt.id),
+  ]
   const remaining = (receipt: Receipt) =>
     receipt.totals.gross.minor -
     refundedTotal(refundsFor(receipt), receipt.totals.gross.currency).minor

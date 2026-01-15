@@ -33,13 +33,14 @@ export function validateSaleHistory(history: SaleHistory): SaleHistory {
       return [receipt.id, receipt]
     }),
   )
+  const pendingRefunds = history.pendingRefunds.map(validateRefundEvent)
+  const allRefunds = [...history.refunds, ...pendingRefunds]
   if (
     receipts.size !== history.receipts.length ||
-    new Set(history.refunds.map((entry) => entry.id)).size !==
-      history.refunds.length
+    new Set(allRefunds.map((entry) => entry.id)).size !== allRefunds.length
   )
     throw new TypeError('Sale history identities must be unique')
-  history.refunds.forEach((refund) => {
+  allRefunds.forEach((refund) => {
     validateRefund(refund)
     const receipt = receipts.get(refund.receiptId)
     if (
@@ -51,13 +52,12 @@ export function validateSaleHistory(history: SaleHistory): SaleHistory {
   })
   for (const receipt of history.receipts) {
     const total = refundedTotal(
-      history.refunds.filter((entry) => entry.receiptId === receipt.id),
+      allRefunds.filter((entry) => entry.receiptId === receipt.id),
       receipt.totals.gross.currency,
     )
     if (total.minor > receipt.totals.gross.minor)
       throw new TypeError('Stored refunds exceed receipt total')
   }
-  history.pendingRefunds.forEach(validateRefundEvent)
   return history
 }
 export function parseSaleHistory(value: string | null): SaleHistory {
