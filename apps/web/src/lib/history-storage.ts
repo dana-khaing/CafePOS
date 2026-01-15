@@ -67,37 +67,37 @@ export function parseSaleHistory(value: string | null): SaleHistory {
   } catch {
     try {
       const raw = JSON.parse(value) as Partial<SaleHistory>
-      const receipts = (Array.isArray(raw.receipts) ? raw.receipts : []).filter(
-        (entry) => {
-          try {
-            validateReceipt(entry)
-            return true
-          } catch {
-            return false
-          }
-        },
-      )
-      const receiptIds = new Set(receipts.map((entry) => entry.id))
-      const refunds = (Array.isArray(raw.refunds) ? raw.refunds : []).filter(
-        (entry) => {
-          try {
-            validateRefund(entry)
-            return receiptIds.has(entry.receiptId)
-          } catch {
-            return false
-          }
-        },
-      )
-      const pendingRefunds = (
-        Array.isArray(raw.pendingRefunds) ? raw.pendingRefunds : []
-      ).filter((entry) => {
+      let salvaged = emptyHistory()
+      for (const receipt of Array.isArray(raw.receipts) ? raw.receipts : []) {
         try {
-          return receiptIds.has(validateRefundEvent(entry).receiptId)
+          salvaged = appendReceipt(salvaged, receipt)
         } catch {
-          return false
+          /* quarantine invalid receipt */
         }
-      })
-      return validateSaleHistory({ receipts, refunds, pendingRefunds })
+      }
+      for (const refund of Array.isArray(raw.refunds) ? raw.refunds : []) {
+        try {
+          validateRefund(refund)
+          const candidate = {
+            ...salvaged,
+            refunds: [...salvaged.refunds, refund],
+          }
+          validateSaleHistory(candidate)
+          salvaged = candidate
+        } catch {
+          /* quarantine invalid or conflicting refund */
+        }
+      }
+      for (const event of Array.isArray(raw.pendingRefunds)
+        ? raw.pendingRefunds
+        : []) {
+        try {
+          salvaged = stageRefund(salvaged, event)
+        } catch {
+          /* quarantine invalid pending event */
+        }
+      }
+      return salvaged
     } catch {
       return emptyHistory()
     }

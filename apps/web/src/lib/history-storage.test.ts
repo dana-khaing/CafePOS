@@ -78,6 +78,26 @@ describe('sale history storage', () => {
         }),
       ).receipts,
     ).toEqual([receipt])
+    const validRefund = createRefund(receipt, [], {
+      id: 'valid',
+      actorId: 'manager',
+      actorRole: 'manager',
+      reason: 'Valid',
+      amount: money(1000),
+      createdAt: '2026-01-15T10:00:00.000Z',
+    }).refund
+    const salvaged = parseSaleHistory(
+      JSON.stringify({
+        receipts: [receipt],
+        refunds: [
+          validRefund,
+          { ...validRefund, id: 'relationally-forged', orderId: 'other' },
+        ],
+        pendingRefunds: [],
+      }),
+    )
+    expect(salvaged.receipts).toEqual([receipt])
+    expect(salvaged.refunds).toEqual([validRefund])
     expect(() =>
       appendReceipt(appendReceipt(emptyHistory(), receipt), {
         ...receipt,
