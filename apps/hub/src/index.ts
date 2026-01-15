@@ -4,12 +4,14 @@ import { createHubApp } from './app.js'
 import { loadHubConfig } from './config.js'
 import { FileOutboxStore } from './outbox-store.js'
 import { FileKitchenStore } from './kitchen-store.js'
+import { FileRefundStore } from './refund-store.js'
 
 const config = loadHubConfig()
 const app = createHubApp(
   config,
   new FileOutboxStore(config.outboxPath),
   new FileKitchenStore(config.kitchenPath),
+  new FileRefundStore(config.refundPath),
 )
 
 await app.listen({ host: config.host, port: config.port })
