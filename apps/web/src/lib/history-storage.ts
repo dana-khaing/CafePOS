@@ -65,7 +65,42 @@ export function parseSaleHistory(value: string | null): SaleHistory {
   try {
     return validateSaleHistory(JSON.parse(value) as SaleHistory)
   } catch {
-    return emptyHistory()
+    try {
+      const raw = JSON.parse(value) as Partial<SaleHistory>
+      const receipts = (Array.isArray(raw.receipts) ? raw.receipts : []).filter(
+        (entry) => {
+          try {
+            validateReceipt(entry)
+            return true
+          } catch {
+            return false
+          }
+        },
+      )
+      const receiptIds = new Set(receipts.map((entry) => entry.id))
+      const refunds = (Array.isArray(raw.refunds) ? raw.refunds : []).filter(
+        (entry) => {
+          try {
+            validateRefund(entry)
+            return receiptIds.has(entry.receiptId)
+          } catch {
+            return false
+          }
+        },
+      )
+      const pendingRefunds = (
+        Array.isArray(raw.pendingRefunds) ? raw.pendingRefunds : []
+      ).filter((entry) => {
+        try {
+          return receiptIds.has(validateRefundEvent(entry).receiptId)
+        } catch {
+          return false
+        }
+      })
+      return validateSaleHistory({ receipts, refunds, pendingRefunds })
+    } catch {
+      return emptyHistory()
+    }
   }
 }
 export function serializeSaleHistory(history: SaleHistory) {
@@ -76,7 +111,12 @@ export function appendReceipt(
   receipt: Receipt,
 ): SaleHistory {
   validateReceipt(receipt)
-  if (history.receipts.some((entry) => entry.id === receipt.id)) return history
+  const existing = history.receipts.find((entry) => entry.id === receipt.id)
+  if (existing) {
+    if (JSON.stringify(existing) !== JSON.stringify(receipt))
+      throw new TypeError('Receipt identity collision')
+    return history
+  }
   return validateSaleHistory({
     ...history,
     receipts: [receipt, ...history.receipts],

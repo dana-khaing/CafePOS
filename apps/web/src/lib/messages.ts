@@ -127,6 +127,7 @@ export const messages = {
     refund: 'Refund',
     refundAmount: 'Refund amount (baht)',
     refundReason: 'Reason',
+    managerPin: 'Manager approval PIN',
     confirmRefund: 'Confirm refund',
     retryRefund: 'Retry pending refund',
     refundError:
@@ -262,6 +263,7 @@ export const messages = {
     refund: 'คืนเงิน',
     refundAmount: 'จำนวนเงินคืน (บาท)',
     refundReason: 'เหตุผล',
+    managerPin: 'รหัสอนุมัติผู้จัดการ',
     confirmRefund: 'ยืนยันการคืนเงิน',
     retryRefund: 'ลองคืนเงินที่ค้างอีกครั้ง',
     refundError: 'คืนเงินไม่สำเร็จ สามารถลองคำขอเดิมอีกครั้งได้อย่างปลอดภัย',
