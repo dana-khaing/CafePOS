@@ -21,7 +21,14 @@ import { MobileNavigation } from '@/components/mobile-navigation'
 import { Button } from '@/components/ui/button'
 
 const navigation: ReadonlyArray<{
-  label: 'overview' | 'menu' | 'orders' | 'kitchen' | 'reports' | 'settings'
+  label:
+    | 'overview'
+    | 'menu'
+    | 'orders'
+    | 'history'
+    | 'kitchen'
+    | 'reports'
+    | 'settings'
   href: Route
   icon: typeof LayoutDashboard
   available: boolean
@@ -31,6 +38,12 @@ const navigation: ReadonlyArray<{
   {
     label: 'orders',
     href: '/orders' as Route,
+    icon: ReceiptText,
+    available: true,
+  },
+  {
+    label: 'history',
+    href: '/history' as Route,
     icon: ReceiptText,
     available: true,
   },
