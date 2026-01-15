@@ -17,6 +17,7 @@ export const permissions = [
   'order.create',
   'kitchen.view',
   'report.view',
+  'refund.create',
 ] as const
 
 export type Permission = (typeof permissions)[number]
@@ -30,6 +31,7 @@ const rolePermissions: Record<MembershipRole, ReadonlySet<Permission>> = {
     'order.create',
     'kitchen.view',
     'report.view',
+    'refund.create',
   ]),
   cashier: new Set(['order.create']),
   kitchen: new Set(['kitchen.view']),
