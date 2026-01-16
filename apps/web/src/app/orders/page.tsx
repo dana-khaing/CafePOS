@@ -53,6 +53,12 @@ import {
   parseSaleHistory,
   serializeSaleHistory,
 } from '@/lib/history-storage'
+import {
+  SHIFT_STORAGE_KEY,
+  parseShiftLedger,
+  recordCashSale,
+  serializeShiftLedger,
+} from '@/lib/shift-storage'
 
 const vat = {
   id: 'vat7',
@@ -286,6 +292,15 @@ export default function OrdersPage() {
               serializeSaleHistory(
                 appendReceipt(
                   parseSaleHistory(localStorage.getItem(HISTORY_STORAGE_KEY)),
+                  completedReceipt,
+                ),
+              ),
+            )
+            localStorage.setItem(
+              SHIFT_STORAGE_KEY,
+              serializeShiftLedger(
+                recordCashSale(
+                  parseShiftLedger(localStorage.getItem(SHIFT_STORAGE_KEY)),
                   completedReceipt,
                 ),
               ),
