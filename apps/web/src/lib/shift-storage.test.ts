@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   addPaymentTender,
   completePayment,
+  closeCashShift,
   createPaymentSession,
   createReceipt,
   createRefund,
@@ -151,5 +152,97 @@ describe('shift storage', () => {
       recordCashRefund({ current, archive: [] }, receipt, refund).current
         ?.movements,
     ).toEqual([])
+  })
+  it('caps mixed-tender cash refunds across archived shifts', () => {
+    const firstShift = openCashShift({
+      id: 'first',
+      branchId: 'branch-riverside',
+      actorId: 'manager',
+      actorRole: 'manager',
+      openedAt: '2026-01-16T08:00:00Z',
+      openingFloat: money(50000),
+    })
+    const order = {
+      id: 'mixed-order',
+      currency: 'THB' as const,
+      diningMode: 'counter' as const,
+      lines: [
+        {
+          id: 'line',
+          itemId: 'latte',
+          name: 'Latte',
+          quantity: 1,
+          unitPrice: money(12000),
+          modifiers: [],
+          taxRate: {
+            id: 'vat',
+            name: 'VAT',
+            basisPoints: 700,
+            mode: 'inclusive' as const,
+          },
+        },
+      ],
+    }
+    let payment = createPaymentSession('mixed-payment', order.id, money(12000))
+    payment = addPaymentTender(payment, {
+      id: 'cash',
+      method: 'cash',
+      amount: money(5000),
+    })
+    payment = addPaymentTender(payment, {
+      id: 'card',
+      method: 'card',
+      amount: money(7000),
+    })
+    const receipt = createReceipt(
+      order,
+      completePayment(payment, {
+        branchId: 'branch-riverside',
+        actorId: 'cashier',
+        completedAt: '2026-01-16T09:00:00Z',
+        eventId: 'mixed-event',
+      }).payment,
+    )
+    const firstRefund = createRefund(receipt, [], {
+      id: 'refund-one',
+      actorId: 'manager',
+      actorRole: 'manager',
+      reason: 'First',
+      amount: money(2000),
+      createdAt: '2026-01-16T10:00:00Z',
+    }).refund
+    let ledger = recordCashRefund(
+      { current: firstShift, archive: [] },
+      receipt,
+      firstRefund,
+    )
+    const closed = closeCashShift(ledger.current!, {
+      actorId: 'manager',
+      actorRole: 'manager',
+      closedAt: '2026-01-16T11:00:00Z',
+      countedCash: money(48000),
+    })
+    const secondShift = openCashShift({
+      id: 'second',
+      branchId: 'branch-riverside',
+      actorId: 'manager',
+      actorRole: 'manager',
+      openedAt: '2026-01-16T12:00:00Z',
+      openingFloat: money(50000),
+    })
+    const secondRefund = createRefund(receipt, [firstRefund], {
+      id: 'refund-two',
+      actorId: 'manager',
+      actorRole: 'manager',
+      reason: 'Second',
+      amount: money(4000),
+      createdAt: '2026-01-16T13:00:00Z',
+    }).refund
+    ledger = recordCashRefund(
+      { current: secondShift, archive: [closed] },
+      receipt,
+      secondRefund,
+    )
+    expect(ledger.current?.movements[0]?.amount).toEqual(money(3000))
   })
 })

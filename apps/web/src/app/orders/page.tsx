@@ -53,12 +53,7 @@ import {
   parseSaleHistory,
   serializeSaleHistory,
 } from '@/lib/history-storage'
-import {
-  SHIFT_STORAGE_KEY,
-  parseShiftLedger,
-  recordCashSale,
-  serializeShiftLedger,
-} from '@/lib/shift-storage'
+import { recordCashSale, updateStoredShiftLedger } from '@/lib/shift-storage'
 
 const vat = {
   id: 'vat7',
@@ -281,7 +276,7 @@ export default function OrdersPage() {
       {payment && (
         <PaymentDialog
           initial={payment}
-          onComplete={(completedPayment) => {
+          onComplete={async (completedPayment) => {
             const completedReceipt = createReceipt(order, completedPayment)
             localStorage.setItem(
               RECEIPT_STORAGE_KEY,
@@ -296,14 +291,8 @@ export default function OrdersPage() {
                 ),
               ),
             )
-            localStorage.setItem(
-              SHIFT_STORAGE_KEY,
-              serializeShiftLedger(
-                recordCashSale(
-                  parseShiftLedger(localStorage.getItem(SHIFT_STORAGE_KEY)),
-                  completedReceipt,
-                ),
-              ),
+            await updateStoredShiftLedger(localStorage, (ledger) =>
+              recordCashSale(ledger, completedReceipt),
             )
             setReceipt(completedReceipt)
             setPayment(null)
