@@ -57,12 +57,19 @@ export function validateCashShift(shift: CashShift): CashShift {
     shift.version < 1
   )
     throw new TypeError('Cash shift identity is invalid')
+  if (shift.status !== 'open' && shift.status !== 'closed')
+    throw new TypeError('Cash shift status is invalid')
   const ids = new Set<string>()
+  let previousAt = Date.parse(shift.openedAt)
   for (const entry of shift.movements) {
     validateMovement(entry, shift.openingFloat.currency)
     if (ids.has(entry.id))
       throw new TypeError('Cash movement ids must be unique')
     ids.add(entry.id)
+    const occurredAt = Date.parse(entry.occurredAt)
+    if (occurredAt < previousAt)
+      throw new TypeError('Cash movements must be chronological')
+    previousAt = occurredAt
   }
   const expected = expectedDrawerCash(shift)
   if (expected.minor < 0)
@@ -75,7 +82,13 @@ export function validateCashShift(shift: CashShift): CashShift {
       !shift.countedCash ||
       !shift.expectedCash ||
       !shift.variance ||
-      Date.parse(shift.closedAt) < Date.parse(shift.openedAt)
+      Date.parse(shift.closedAt) < previousAt ||
+      shift.countedCash.currency !== expected.currency ||
+      !Number.isSafeInteger(shift.countedCash.minor) ||
+      shift.countedCash.minor < 0 ||
+      shift.expectedCash.currency !== expected.currency ||
+      !Number.isSafeInteger(shift.expectedCash.minor) ||
+      !Number.isSafeInteger(shift.variance.minor)
     )
       throw new TypeError('Closed shift details are invalid')
     if (

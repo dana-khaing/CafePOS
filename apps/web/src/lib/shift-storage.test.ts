@@ -26,7 +26,7 @@ describe('shift storage', () => {
     })
     const ledger = { current, archive: [] }
     expect(parseShiftLedger(serializeShiftLedger(ledger))).toEqual(ledger)
-    expect(parseShiftLedger('{').current).toBeNull()
+    expect(() => parseShiftLedger('{')).toThrow()
   })
   it('records cash receipts and refunds idempotently', () => {
     const current = openCashShift({
@@ -81,7 +81,7 @@ describe('shift storage', () => {
       amount: money(2000),
       createdAt: '2026-01-16T10:00:00Z',
     }).refund
-    ledger = recordCashRefund(ledger, refund)
+    ledger = recordCashRefund(ledger, receipt, refund)
     expect(
       ledger.current?.movements.map((entry) => [
         entry.type,
@@ -91,5 +91,65 @@ describe('shift storage', () => {
       ['sale', 12000],
       ['refund', 2000],
     ])
+  })
+  it('does not remove card-only receipts from the cash drawer', () => {
+    const current = openCashShift({
+      id: 'shift',
+      branchId: 'branch-riverside',
+      actorId: 'manager',
+      actorRole: 'manager',
+      openedAt: '2026-01-16T08:00:00Z',
+      openingFloat: money(50000),
+    })
+    const order = {
+      id: 'card-order',
+      currency: 'THB' as const,
+      diningMode: 'counter' as const,
+      lines: [
+        {
+          id: 'line',
+          itemId: 'latte',
+          name: 'Latte',
+          quantity: 1,
+          unitPrice: money(12000),
+          modifiers: [],
+          taxRate: {
+            id: 'vat',
+            name: 'VAT',
+            basisPoints: 700,
+            mode: 'inclusive' as const,
+          },
+        },
+      ],
+    }
+    const paid = addPaymentTender(
+      createPaymentSession('card-payment', order.id, money(12000)),
+      {
+        id: 'card',
+        method: 'card',
+        amount: money(12000),
+      },
+    )
+    const receipt = createReceipt(
+      order,
+      completePayment(paid, {
+        branchId: 'branch-riverside',
+        actorId: 'cashier',
+        completedAt: '2026-01-16T09:00:00Z',
+        eventId: 'card-event',
+      }).payment,
+    )
+    const refund = createRefund(receipt, [], {
+      id: 'card-refund',
+      actorId: 'manager',
+      actorRole: 'manager',
+      reason: 'Return',
+      amount: money(2000),
+      createdAt: '2026-01-16T10:00:00Z',
+    }).refund
+    expect(
+      recordCashRefund({ current, archive: [] }, receipt, refund).current
+        ?.movements,
+    ).toEqual([])
   })
 })
