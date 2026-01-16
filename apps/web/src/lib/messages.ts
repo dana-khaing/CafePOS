@@ -153,6 +153,8 @@ export const messages = {
     reason: 'Reason',
     confirm: 'Confirm',
     managerApprovalError: 'Manager approval or drawer update failed.',
+    shiftStorageError:
+      'Drawer records are damaged. Operations are locked to protect the audit trail.',
   },
   th: {
     overview: 'ภาพรวม',
@@ -306,6 +308,8 @@ export const messages = {
     reason: 'เหตุผล',
     confirm: 'ยืนยัน',
     managerApprovalError: 'การอนุมัติผู้จัดการหรือการอัปเดตลิ้นชักล้มเหลว',
+    shiftStorageError:
+      'ข้อมูลลิ้นชักเสียหาย ระบบล็อกการทำงานเพื่อปกป้องประวัติการตรวจสอบ',
   },
 } as const
 

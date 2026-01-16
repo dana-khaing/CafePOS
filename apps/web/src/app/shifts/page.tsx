@@ -1,6 +1,6 @@
 'use client'
 import { Banknote, LockKeyhole, Plus, Minus } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   addCashMovement,
   closeCashShift,
@@ -32,23 +32,69 @@ export default function ShiftsPage() {
   const [reason, setReason] = useState('')
   const [pin, setPin] = useState('')
   const [error, setError] = useState(false)
+  const [storageError, setStorageError] = useState(false)
   const [busy, setBusy] = useState(false)
-  useEffect(
-    () => setLedger(parseShiftLedger(localStorage.getItem(SHIFT_STORAGE_KEY))),
-    [],
-  )
+  const busyRef = useRef(false)
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const returnFocusRef = useRef<HTMLElement | null>(null)
+  useEffect(() => {
+    const load = () => {
+      try {
+        setLedger(parseShiftLedger(localStorage.getItem(SHIFT_STORAGE_KEY)))
+        setStorageError(false)
+      } catch {
+        setStorageError(true)
+      }
+    }
+    load()
+    window.addEventListener('storage', load)
+    return () => window.removeEventListener('storage', load)
+  }, [])
+  useEffect(() => {
+    if (!mode) return
+    returnFocusRef.current = document.activeElement as HTMLElement
+    const dialog = dialogRef.current
+    const focusable = () =>
+      [
+        ...(dialog?.querySelectorAll<HTMLElement>('input, button') ?? []),
+      ].filter((entry) => !entry.hasAttribute('disabled'))
+    focusable()[0]?.focus()
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !busyRef.current) setMode(null)
+      if (event.key !== 'Tab') return
+      const entries = focusable()
+      const first = entries[0]
+      const last = entries.at(-1)
+      if (!first || !last) return
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      returnFocusRef.current?.focus()
+    }
+  }, [mode])
   const save = (next: ShiftLedger) => {
     localStorage.setItem(SHIFT_STORAGE_KEY, serializeShiftLedger(next))
     setLedger(next)
   }
   const perform = async () => {
-    if (!mode) return
+    if (!mode || busyRef.current || storageError) return
+    busyRef.current = true
     setBusy(true)
     setError(false)
     try {
       await verifyManagerPin(pin)
+      const latest = parseShiftLedger(localStorage.getItem(SHIFT_STORAGE_KEY))
       const minor = Math.round(Number(amount) * 100)
       if (mode === 'open') {
+        if (latest.current) throw new TypeError('A shift is already open')
         const current = openCashShift({
           id: `shift-${crypto.randomUUID()}`,
           branchId: 'branch-riverside',
@@ -57,16 +103,16 @@ export default function ShiftsPage() {
           openedAt: new Date().toISOString(),
           openingFloat: money(minor),
         })
-        save({ ...ledger, current })
-      } else if (ledger.current && mode === 'close') {
-        const closed = closeCashShift(ledger.current, {
+        save({ ...latest, current })
+      } else if (latest.current && mode === 'close') {
+        const closed = closeCashShift(latest.current, {
           actorId: 'manager-approved',
           actorRole: 'manager',
           closedAt: new Date().toISOString(),
           countedCash: money(minor),
         })
-        save({ current: null, archive: [closed, ...ledger.archive] })
-      } else if (ledger.current) {
+        save({ current: null, archive: [closed, ...latest.archive] })
+      } else if (latest.current) {
         const movement: CashMovement = {
           id: crypto.randomUUID(),
           type: mode as 'paid-in' | 'paid-out',
@@ -74,7 +120,10 @@ export default function ShiftsPage() {
           reason,
           occurredAt: new Date().toISOString(),
         }
-        save({ ...ledger, current: addCashMovement(ledger.current, movement) })
+        save({
+          ...latest,
+          current: addCashMovement(latest.current, movement),
+        })
       }
       setMode(null)
       setAmount('')
@@ -83,6 +132,7 @@ export default function ShiftsPage() {
     } catch {
       setError(true)
     } finally {
+      busyRef.current = false
       setBusy(false)
     }
   }
@@ -102,6 +152,14 @@ export default function ShiftsPage() {
             className="mt-4 rounded-md bg-destructive/10 p-3 text-destructive"
           >
             {t('managerApprovalError')}
+          </p>
+        )}
+        {storageError && (
+          <p
+            role="alert"
+            className="mt-4 rounded-md bg-destructive/10 p-3 text-destructive"
+          >
+            {t('shiftStorageError')}
           </p>
         )}
         {current ? (
@@ -198,6 +256,7 @@ export default function ShiftsPage() {
               <h2 className="mt-3 text-xl font-semibold">{t('noOpenShift')}</h2>
               <Button
                 className="mt-5"
+                disabled={storageError}
                 onClick={() => {
                   setMode('open')
                   setAmount('500.00')
@@ -210,12 +269,14 @@ export default function ShiftsPage() {
         )}
         {mode && (
           <div
+            ref={dialogRef}
             className="fixed inset-0 z-50 grid place-items-center bg-background/80 p-4"
             role="dialog"
             aria-modal="true"
+            aria-labelledby="shift-dialog-title"
           >
             <div className="w-full max-w-md rounded-2xl border bg-card p-6 shadow-2xl">
-              <h2 className="text-xl font-semibold">
+              <h2 id="shift-dialog-title" className="text-xl font-semibold">
                 {t(
                   mode === 'open'
                     ? 'openShift'
