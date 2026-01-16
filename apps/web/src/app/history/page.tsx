@@ -84,6 +84,7 @@ export default function HistoryPage() {
         serializeShiftLedger(
           recordCashRefund(
             parseShiftLedger(localStorage.getItem(SHIFT_STORAGE_KEY)),
+            receipt,
             validateRefundEvent(event),
           ),
         ),

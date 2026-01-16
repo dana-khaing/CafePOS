@@ -38,11 +38,7 @@ export function validateShiftLedger(value: ShiftLedger) {
 }
 export function parseShiftLedger(raw: string | null): ShiftLedger {
   if (!raw) return emptyShiftLedger()
-  try {
-    return validateShiftLedger(JSON.parse(raw) as ShiftLedger)
-  } catch {
-    return emptyShiftLedger()
-  }
+  return validateShiftLedger(JSON.parse(raw) as ShiftLedger)
 }
 export function serializeShiftLedger(value: ShiftLedger) {
   return JSON.stringify(validateShiftLedger(value))
@@ -73,18 +69,34 @@ export function recordCashSale(
 }
 export function recordCashRefund(
   ledger: ShiftLedger,
+  receipt: Receipt,
   refund: Refund,
 ): ShiftLedger {
   if (!ledger.current) return ledger
   const id = `refund:${refund.id}`
   if (ledger.current.movements.some((entry) => entry.id === id)) return ledger
+  const cashPaid =
+    receipt.payment.session.tenders
+      .filter((entry) => entry.method === 'cash')
+      .reduce((sum, entry) => sum + entry.amount.minor, 0) -
+    receipt.payment.summary.change.minor
+  const cashAlreadyRefunded = ledger.current.movements
+    .filter(
+      (entry) => entry.type === 'refund' && entry.reason === receipt.number,
+    )
+    .reduce((sum, entry) => sum + entry.amount.minor, 0)
+  const cashRefund = Math.min(
+    refund.amount.minor,
+    Math.max(0, cashPaid - cashAlreadyRefunded),
+  )
+  if (cashRefund < 1) return ledger
   return {
     ...ledger,
     current: addCashMovement(ledger.current, {
       id,
       type: 'refund',
-      amount: refund.amount,
-      reason: refund.reason,
+      amount: money(cashRefund, refund.amount.currency),
+      reason: receipt.number,
       occurredAt: refund.createdAt,
     }),
   }

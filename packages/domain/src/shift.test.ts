@@ -79,4 +79,50 @@ describe('cash shifts', () => {
       'totals',
     )
   })
+  it('enforces chronology, status, and closing money invariants', () => {
+    const shift = openCashShift({
+      id: 'shift',
+      branchId: 'branch',
+      actorId: 'manager',
+      actorRole: 'manager',
+      openedAt: '2026-01-16T08:00:00Z',
+      openingFloat: money(100),
+    })
+    expect(() =>
+      addCashMovement(shift, {
+        id: 'early',
+        type: 'paid-in',
+        amount: money(1),
+        reason: 'Early',
+        occurredAt: '2026-01-16T07:00:00Z',
+      }),
+    ).toThrow('chronological')
+    const moved = addCashMovement(shift, {
+      id: 'later',
+      type: 'paid-in',
+      amount: money(1),
+      reason: 'Later',
+      occurredAt: '2026-01-16T10:00:00Z',
+    })
+    expect(() =>
+      closeCashShift(moved, {
+        actorId: 'manager',
+        actorRole: 'manager',
+        closedAt: '2026-01-16T09:00:00Z',
+        countedCash: money(101),
+      }),
+    ).toThrow('details')
+    expect(() =>
+      validateCashShift({ ...shift, status: 'garbage' as 'open' }),
+    ).toThrow('status')
+    const closed = closeCashShift(moved, {
+      actorId: 'manager',
+      actorRole: 'manager',
+      closedAt: '2026-01-16T11:00:00Z',
+      countedCash: money(101),
+    })
+    expect(() =>
+      validateCashShift({ ...closed, countedCash: money(101, 'MMK') }),
+    ).toThrow('details')
+  })
 })
