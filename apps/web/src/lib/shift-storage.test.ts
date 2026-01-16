@@ -14,8 +14,20 @@ import {
   recordCashRefund,
   recordCashSale,
   serializeShiftLedger,
+  updateStoredShiftLedger,
 } from './shift-storage'
 describe('shift storage', () => {
+  it('fails closed when browser-wide locking is unavailable', async () => {
+    const values = new Map<string, string>()
+    const storage = {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+    } as unknown as Storage
+    await expect(
+      updateStoredShiftLedger(storage, (ledger) => ledger, null),
+    ).rejects.toThrow('locking is unavailable')
+    expect(values.size).toBe(0)
+  })
   it('round trips validated open shifts and rejects corruption', () => {
     const current = openCashShift({
       id: 'shift',

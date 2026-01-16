@@ -29,7 +29,7 @@ export function PaymentDialog({
   onComplete,
 }: {
   initial: PaymentSession
-  onComplete: (payment: CompletedPayment) => void
+  onComplete: (payment: CompletedPayment) => Promise<void>
 }) {
   const { money: formatMoney, t } = useLocale()
   const [session, setSession] = useState(initial)
@@ -73,10 +73,10 @@ export function PaymentDialog({
       )
       pendingEventRef.current = event
       await enqueuePayment(event)
+      await onComplete(validateCompletedPaymentEvent(event))
       localStorage.removeItem(PAYMENT_STORAGE_KEY)
       localStorage.removeItem(PENDING_PAYMENT_EVENT_KEY)
       pendingEventRef.current = null
-      onComplete(validateCompletedPaymentEvent(event))
     } catch {
       setError(true)
     } finally {
