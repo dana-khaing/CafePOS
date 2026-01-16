@@ -1,4 +1,11 @@
-import { type CashShift, validateCashShift } from '@cafepos/domain'
+import {
+  addCashMovement,
+  money,
+  type CashShift,
+  type Receipt,
+  type Refund,
+  validateCashShift,
+} from '@cafepos/domain'
 export const SHIFT_STORAGE_KEY = 'cafepos.cash-shifts.v1'
 export type ShiftLedger = Readonly<{
   current: CashShift | null
@@ -39,4 +46,46 @@ export function parseShiftLedger(raw: string | null): ShiftLedger {
 }
 export function serializeShiftLedger(value: ShiftLedger) {
   return JSON.stringify(validateShiftLedger(value))
+}
+export function recordCashSale(
+  ledger: ShiftLedger,
+  receipt: Receipt,
+): ShiftLedger {
+  if (!ledger.current) return ledger
+  const id = `sale:${receipt.id}`
+  if (ledger.current.movements.some((entry) => entry.id === id)) return ledger
+  const cash =
+    receipt.payment.session.tenders
+      .filter((entry) => entry.method === 'cash')
+      .reduce((sum, entry) => sum + entry.amount.minor, 0) -
+    receipt.payment.summary.change.minor
+  if (cash < 1) return ledger
+  return {
+    ...ledger,
+    current: addCashMovement(ledger.current, {
+      id,
+      type: 'sale',
+      amount: money(cash, receipt.totals.gross.currency),
+      reason: receipt.number,
+      occurredAt: receipt.issuedAt,
+    }),
+  }
+}
+export function recordCashRefund(
+  ledger: ShiftLedger,
+  refund: Refund,
+): ShiftLedger {
+  if (!ledger.current) return ledger
+  const id = `refund:${refund.id}`
+  if (ledger.current.movements.some((entry) => entry.id === id)) return ledger
+  return {
+    ...ledger,
+    current: addCashMovement(ledger.current, {
+      id,
+      type: 'refund',
+      amount: refund.amount,
+      reason: refund.reason,
+      occurredAt: refund.createdAt,
+    }),
+  }
 }

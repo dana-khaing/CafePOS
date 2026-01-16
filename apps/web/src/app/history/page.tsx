@@ -16,6 +16,12 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { enqueueRefund } from '@/lib/refund-client'
 import {
+  SHIFT_STORAGE_KEY,
+  parseShiftLedger,
+  recordCashRefund,
+  serializeShiftLedger,
+} from '@/lib/shift-storage'
+import {
   HISTORY_STORAGE_KEY,
   emptyHistory,
   parseSaleHistory,
@@ -73,6 +79,15 @@ export default function HistoryPage() {
       await enqueueRefund(receipt, event, managerPin)
       const settled = settleRefund(staged, event.id)
       save(settled)
+      localStorage.setItem(
+        SHIFT_STORAGE_KEY,
+        serializeShiftLedger(
+          recordCashRefund(
+            parseShiftLedger(localStorage.getItem(SHIFT_STORAGE_KEY)),
+            validateRefundEvent(event),
+          ),
+        ),
+      )
       setSelected(null)
       setAmount('')
       setReason('')
