@@ -71,6 +71,7 @@ export default function HistoryPage() {
     try {
       const staged = stageRefund(history, event)
       save(staged)
+      setPendingRetry(event)
       await enqueueRefund(receipt, event, managerPin)
       await updateStoredShiftLedger(localStorage, (ledger) =>
         recordCashRefund(ledger, receipt, validateRefundEvent(event)),

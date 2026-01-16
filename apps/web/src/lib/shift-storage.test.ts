@@ -104,6 +104,24 @@ describe('shift storage', () => {
       ['sale', 12000],
       ['refund', 2000],
     ])
+    const closed = closeCashShift(ledger.current!, {
+      actorId: 'manager',
+      actorRole: 'manager',
+      closedAt: '2026-01-16T11:00:00Z',
+      countedCash: money(60000),
+    })
+    const next = openCashShift({
+      id: 'next-shift',
+      branchId: 'branch-riverside',
+      actorId: 'manager',
+      actorRole: 'manager',
+      openedAt: '2026-01-16T12:00:00Z',
+      openingFloat: money(50000),
+    })
+    expect(
+      recordCashSale({ current: next, archive: [closed] }, receipt).current
+        ?.movements,
+    ).toEqual([])
   })
   it('does not remove card-only receipts from the cash drawer', () => {
     const current = openCashShift({
