@@ -18,7 +18,7 @@ import {
   SHIFT_STORAGE_KEY,
   emptyShiftLedger,
   parseShiftLedger,
-  serializeShiftLedger,
+  updateStoredShiftLedger,
   type ShiftLedger,
 } from '@/lib/shift-storage'
 
@@ -80,10 +80,6 @@ export default function ShiftsPage() {
       returnFocusRef.current?.focus()
     }
   }, [mode])
-  const save = (next: ShiftLedger) => {
-    localStorage.setItem(SHIFT_STORAGE_KEY, serializeShiftLedger(next))
-    setLedger(next)
-  }
   const perform = async () => {
     if (!mode || busyRef.current || storageError) return
     busyRef.current = true
@@ -91,40 +87,43 @@ export default function ShiftsPage() {
     setError(false)
     try {
       await verifyManagerPin(pin)
-      const latest = parseShiftLedger(localStorage.getItem(SHIFT_STORAGE_KEY))
       const minor = Math.round(Number(amount) * 100)
-      if (mode === 'open') {
-        if (latest.current) throw new TypeError('A shift is already open')
-        const current = openCashShift({
-          id: `shift-${crypto.randomUUID()}`,
-          branchId: 'branch-riverside',
-          actorId: 'manager-approved',
-          actorRole: 'manager',
-          openedAt: new Date().toISOString(),
-          openingFloat: money(minor),
-        })
-        save({ ...latest, current })
-      } else if (latest.current && mode === 'close') {
-        const closed = closeCashShift(latest.current, {
-          actorId: 'manager-approved',
-          actorRole: 'manager',
-          closedAt: new Date().toISOString(),
-          countedCash: money(minor),
-        })
-        save({ current: null, archive: [closed, ...latest.archive] })
-      } else if (latest.current) {
+      const next = await updateStoredShiftLedger(localStorage, (latest) => {
+        if (mode === 'open') {
+          if (latest.current) throw new TypeError('A shift is already open')
+          const current = openCashShift({
+            id: `shift-${crypto.randomUUID()}`,
+            branchId: 'branch-riverside',
+            actorId: 'manager-approved',
+            actorRole: 'manager',
+            openedAt: new Date().toISOString(),
+            openingFloat: money(minor),
+          })
+          return { ...latest, current }
+        }
+        if (!latest.current) throw new TypeError('No shift is open')
+        if (mode === 'close') {
+          const closed = closeCashShift(latest.current, {
+            actorId: 'manager-approved',
+            actorRole: 'manager',
+            closedAt: new Date().toISOString(),
+            countedCash: money(minor),
+          })
+          return { current: null, archive: [closed, ...latest.archive] }
+        }
         const movement: CashMovement = {
           id: crypto.randomUUID(),
-          type: mode as 'paid-in' | 'paid-out',
+          type: mode,
           amount: money(minor),
           reason,
           occurredAt: new Date().toISOString(),
         }
-        save({
+        return {
           ...latest,
           current: addCashMovement(latest.current, movement),
-        })
-      }
+        }
+      })
+      setLedger(next)
       setMode(null)
       setAmount('')
       setReason('')
