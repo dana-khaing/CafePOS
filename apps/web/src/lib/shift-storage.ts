@@ -43,6 +43,18 @@ export function parseShiftLedger(raw: string | null): ShiftLedger {
 export function serializeShiftLedger(value: ShiftLedger) {
   return JSON.stringify(validateShiftLedger(value))
 }
+export async function updateStoredShiftLedger(
+  storage: Storage,
+  update: (ledger: ShiftLedger) => ShiftLedger,
+) {
+  if (!navigator.locks)
+    throw new TypeError('Browser-wide drawer locking is unavailable')
+  return navigator.locks.request(SHIFT_STORAGE_KEY, () => {
+    const next = update(parseShiftLedger(storage.getItem(SHIFT_STORAGE_KEY)))
+    storage.setItem(SHIFT_STORAGE_KEY, serializeShiftLedger(next))
+    return next
+  })
+}
 export function recordCashSale(
   ledger: ShiftLedger,
   receipt: Receipt,
@@ -80,7 +92,8 @@ export function recordCashRefund(
       .filter((entry) => entry.method === 'cash')
       .reduce((sum, entry) => sum + entry.amount.minor, 0) -
     receipt.payment.summary.change.minor
-  const cashAlreadyRefunded = ledger.current.movements
+  const cashAlreadyRefunded = [ledger.current, ...ledger.archive]
+    .flatMap((shift) => shift.movements)
     .filter(
       (entry) => entry.type === 'refund' && entry.reason === receipt.number,
     )
