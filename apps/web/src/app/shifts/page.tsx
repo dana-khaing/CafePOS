@@ -167,11 +167,21 @@ export default function ShiftsPage() {
                   key={entry.id}
                 >
                   <span>
-                    {t(entry.type === 'paid-in' ? 'paidIn' : 'paidOut')} ·{' '}
-                    {entry.reason}
+                    {t(
+                      entry.type === 'sale'
+                        ? 'cashSale'
+                        : entry.type === 'refund'
+                          ? 'cashRefund'
+                          : entry.type === 'paid-in'
+                            ? 'paidIn'
+                            : 'paidOut',
+                    )}{' '}
+                    · {entry.reason}
                   </span>
                   <span>
-                    {entry.type === 'paid-out' ? '-' : '+'}
+                    {entry.type === 'paid-out' || entry.type === 'refund'
+                      ? '-'
+                      : '+'}
                     {formatMoney(entry.amount.minor / 100)}
                   </span>
                 </div>
