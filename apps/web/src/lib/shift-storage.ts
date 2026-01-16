@@ -61,7 +61,12 @@ export function recordCashSale(
 ): ShiftLedger {
   if (!ledger.current) return ledger
   const id = `sale:${receipt.id}`
-  if (ledger.current.movements.some((entry) => entry.id === id)) return ledger
+  if (
+    [ledger.current, ...ledger.archive].some((shift) =>
+      shift.movements.some((entry) => entry.id === id),
+    )
+  )
+    return ledger
   const cash =
     receipt.payment.session.tenders
       .filter((entry) => entry.method === 'cash')
