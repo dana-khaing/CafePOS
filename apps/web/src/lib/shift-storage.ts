@@ -46,10 +46,10 @@ export function serializeShiftLedger(value: ShiftLedger) {
 export async function updateStoredShiftLedger(
   storage: Storage,
   update: (ledger: ShiftLedger) => ShiftLedger,
+  locks: LockManager | null | undefined = globalThis.navigator?.locks,
 ) {
-  if (!navigator.locks)
-    throw new TypeError('Browser-wide drawer locking is unavailable')
-  return navigator.locks.request(SHIFT_STORAGE_KEY, () => {
+  if (!locks) throw new TypeError('Browser-wide drawer locking is unavailable')
+  return locks.request(SHIFT_STORAGE_KEY, () => {
     const next = update(parseShiftLedger(storage.getItem(SHIFT_STORAGE_KEY)))
     storage.setItem(SHIFT_STORAGE_KEY, serializeShiftLedger(next))
     return next

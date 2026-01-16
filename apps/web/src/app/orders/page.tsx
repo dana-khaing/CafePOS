@@ -278,6 +278,9 @@ export default function OrdersPage() {
           initial={payment}
           onComplete={async (completedPayment) => {
             const completedReceipt = createReceipt(order, completedPayment)
+            await updateStoredShiftLedger(localStorage, (ledger) =>
+              recordCashSale(ledger, completedReceipt),
+            )
             localStorage.setItem(
               RECEIPT_STORAGE_KEY,
               serializeReceipt(completedReceipt),
@@ -290,9 +293,6 @@ export default function OrdersPage() {
                   completedReceipt,
                 ),
               ),
-            )
-            await updateStoredShiftLedger(localStorage, (ledger) =>
-              recordCashSale(ledger, completedReceipt),
             )
             setReceipt(completedReceipt)
             setPayment(null)

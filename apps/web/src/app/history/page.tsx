@@ -72,11 +72,11 @@ export default function HistoryPage() {
       const staged = stageRefund(history, event)
       save(staged)
       await enqueueRefund(receipt, event, managerPin)
-      const settled = settleRefund(staged, event.id)
-      save(settled)
       await updateStoredShiftLedger(localStorage, (ledger) =>
         recordCashRefund(ledger, receipt, validateRefundEvent(event)),
       )
+      const settled = settleRefund(staged, event.id)
+      save(settled)
       setSelected(null)
       setAmount('')
       setReason('')
