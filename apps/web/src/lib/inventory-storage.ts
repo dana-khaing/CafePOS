@@ -83,25 +83,68 @@ export const consumeStoredReceipt = (storage: Storage, receipt: Receipt) =>
   updateStoredInventory(storage, (inventory) =>
     consumeReceipt(inventory, receipt),
   )
-export function stageInventoryReceipt(storage: Storage, receipt: Receipt) {
-  validateReceipt(receipt)
+export function salvagePendingInventoryReceipts(storage: Storage): Receipt[] {
   const raw = storage.getItem(PENDING_INVENTORY_RECEIPTS_KEY)
-  const pending = raw ? (JSON.parse(raw) as Receipt[]).map(validateReceipt) : []
-  const existing = pending.find((entry) => entry.id === receipt.id)
-  if (existing && JSON.stringify(existing) !== JSON.stringify(receipt))
-    throw new TypeError('Pending inventory receipt id conflicts')
-  if (!existing)
-    storage.setItem(
-      PENDING_INVENTORY_RECEIPTS_KEY,
-      JSON.stringify([...pending, receipt]),
-    )
+  if (!raw) return []
+  try {
+    const candidates = JSON.parse(raw) as unknown
+    if (!Array.isArray(candidates))
+      throw new TypeError('Pending inventory queue is invalid')
+    const valid: Receipt[] = []
+    const invalid: unknown[] = []
+    for (const candidate of candidates) {
+      try {
+        valid.push(validateReceipt(candidate as Receipt))
+      } catch {
+        invalid.push(candidate)
+      }
+    }
+    if (invalid.length)
+      storage.setItem(
+        `${PENDING_INVENTORY_RECEIPTS_KEY}.quarantine`,
+        JSON.stringify(invalid),
+      )
+    return valid
+  } catch {
+    storage.setItem(`${PENDING_INVENTORY_RECEIPTS_KEY}.quarantine`, raw)
+    return []
+  }
 }
-export async function consumePendingInventory(storage: Storage) {
-  const raw = storage.getItem(PENDING_INVENTORY_RECEIPTS_KEY)
-  if (!raw) return
-  const pending = (JSON.parse(raw) as Receipt[]).map(validateReceipt)
-  await updateStoredInventory(storage, (inventory) =>
-    pending.reduce(consumeReceipt, inventory),
-  )
-  storage.removeItem(PENDING_INVENTORY_RECEIPTS_KEY)
+export async function stageInventoryReceipt(
+  storage: Storage,
+  receipt: Receipt,
+  locks: LockManager | null | undefined = globalThis.navigator?.locks,
+) {
+  validateReceipt(receipt)
+  if (!locks)
+    throw new TypeError('Browser-wide inventory locking is unavailable')
+  await locks.request(INVENTORY_STORAGE_KEY, () => {
+    const pending = salvagePendingInventoryReceipts(storage)
+    const existing = pending.find((entry) => entry.id === receipt.id)
+    if (existing && JSON.stringify(existing) !== JSON.stringify(receipt))
+      throw new TypeError('Pending inventory receipt id conflicts')
+    if (!existing)
+      storage.setItem(
+        PENDING_INVENTORY_RECEIPTS_KEY,
+        JSON.stringify([...pending, receipt]),
+      )
+  })
+}
+export async function consumePendingInventory(
+  storage: Storage,
+  locks: LockManager | null | undefined = globalThis.navigator?.locks,
+) {
+  if (!locks)
+    throw new TypeError('Browser-wide inventory locking is unavailable')
+  await locks.request(INVENTORY_STORAGE_KEY, () => {
+    const pending = salvagePendingInventoryReceipts(storage)
+    if (!pending.length) {
+      storage.removeItem(PENDING_INVENTORY_RECEIPTS_KEY)
+      return
+    }
+    const current = parseInventory(storage.getItem(INVENTORY_STORAGE_KEY))
+    const next = pending.reduce(consumeReceipt, current)
+    storage.setItem(INVENTORY_STORAGE_KEY, serializeInventory(next))
+    storage.removeItem(PENDING_INVENTORY_RECEIPTS_KEY)
+  })
 }
