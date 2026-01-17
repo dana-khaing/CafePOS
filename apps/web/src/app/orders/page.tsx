@@ -54,6 +54,7 @@ import {
   serializeSaleHistory,
 } from '@/lib/history-storage'
 import { recordCashSale, updateStoredShiftLedger } from '@/lib/shift-storage'
+import { consumeStoredReceipt } from '@/lib/inventory-storage'
 
 const vat = {
   id: 'vat7',
@@ -281,6 +282,7 @@ export default function OrdersPage() {
             await updateStoredShiftLedger(localStorage, (ledger) =>
               recordCashSale(ledger, completedReceipt),
             )
+            await consumeStoredReceipt(localStorage, completedReceipt)
             localStorage.setItem(
               RECEIPT_STORAGE_KEY,
               serializeReceipt(completedReceipt),
