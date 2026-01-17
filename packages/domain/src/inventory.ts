@@ -1,5 +1,5 @@
 import type { MembershipRole } from './access.js'
-import type { Receipt } from './receipt.js'
+import { validateReceipt, type Receipt } from './receipt.js'
 
 export type StockItem = Readonly<{
   id: string
@@ -25,6 +25,7 @@ export type Inventory = Readonly<{
   recipes: readonly Recipe[]
   adjustments: readonly StockAdjustment[]
   consumedReceiptIds: readonly string[]
+  consumedReceiptFingerprints: Readonly<Record<string, string>>
   version: number
 }>
 
@@ -37,13 +38,30 @@ export function validateInventory(value: Inventory): Inventory {
     new Set(value.consumedReceiptIds).size !== value.consumedReceiptIds.length
   )
     throw new TypeError('Consumed receipt ids must be unique')
+  if (value.consumedReceiptIds.some((id) => !id.trim()))
+    throw new TypeError('Consumed receipt ids cannot be blank')
+  if (
+    new Set(value.recipes.map((recipe) => recipe.menuItemId)).size !==
+    value.recipes.length
+  )
+    throw new TypeError('Recipe menu item ids must be unique')
+  if (
+    new Set(value.adjustments.map((entry) => entry.id)).size !==
+    value.adjustments.length
+  )
+    throw new TypeError('Stock adjustment ids must be unique')
+  if (
+    value.consumedReceiptIds.some(
+      (id) => !value.consumedReceiptFingerprints[id],
+    )
+  )
+    throw new TypeError('Consumed receipt fingerprint is missing')
   for (const item of value.items) {
     if (
       !item.id.trim() ||
       !item.name.trim() ||
       !['g', 'ml', 'each'].includes(item.unit) ||
       !Number.isSafeInteger(item.quantity) ||
-      item.quantity < 0 ||
       !Number.isSafeInteger(item.reorderAt) ||
       item.reorderAt < 0
     )
@@ -78,8 +96,14 @@ export function adjustStock(
   validateInventory(inventory)
   if (!['owner', 'admin', 'manager'].includes(actorRole))
     throw new TypeError('Stock adjustment requires manager approval')
-  if (inventory.adjustments.some((entry) => entry.id === adjustment.id))
+  const existing = inventory.adjustments.find(
+    (entry) => entry.id === adjustment.id,
+  )
+  if (existing) {
+    if (JSON.stringify(existing) !== JSON.stringify(adjustment))
+      throw new TypeError('Stock adjustment id conflicts with existing entry')
     return inventory
+  }
   const items = inventory.items.map((item) =>
     item.id === adjustment.stockItemId
       ? { ...item, quantity: item.quantity + adjustment.delta }
@@ -95,7 +119,13 @@ export function adjustStock(
 
 export function consumeReceipt(inventory: Inventory, receipt: Receipt) {
   validateInventory(inventory)
-  if (inventory.consumedReceiptIds.includes(receipt.id)) return inventory
+  validateReceipt(receipt)
+  const fingerprint = JSON.stringify(receipt)
+  if (inventory.consumedReceiptIds.includes(receipt.id)) {
+    if (inventory.consumedReceiptFingerprints[receipt.id] !== fingerprint)
+      throw new TypeError('Consumed receipt id conflicts with existing receipt')
+    return inventory
+  }
   const deductions = new Map<string, number>()
   for (const line of receipt.order.lines) {
     const recipe = inventory.recipes.find(
@@ -113,6 +143,10 @@ export function consumeReceipt(inventory: Inventory, receipt: Receipt) {
     ...inventory,
     items,
     consumedReceiptIds: [...inventory.consumedReceiptIds, receipt.id],
+    consumedReceiptFingerprints: {
+      ...inventory.consumedReceiptFingerprints,
+      [receipt.id]: fingerprint,
+    },
     version: inventory.version + 1,
   })
 }

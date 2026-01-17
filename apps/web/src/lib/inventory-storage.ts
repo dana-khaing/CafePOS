@@ -3,9 +3,11 @@ import {
   type Inventory,
   type Receipt,
   validateInventory,
+  validateReceipt,
 } from '@cafepos/domain'
 
 export const INVENTORY_STORAGE_KEY = 'cafepos.inventory.v1'
+export const PENDING_INVENTORY_RECEIPTS_KEY = 'cafepos.inventory-pending.v1'
 export const initialInventory = (): Inventory => ({
   items: [
     {
@@ -54,6 +56,7 @@ export const initialInventory = (): Inventory => ({
   ],
   adjustments: [],
   consumedReceiptIds: [],
+  consumedReceiptFingerprints: {},
   version: 1,
 })
 export function parseInventory(raw: string | null) {
@@ -80,3 +83,25 @@ export const consumeStoredReceipt = (storage: Storage, receipt: Receipt) =>
   updateStoredInventory(storage, (inventory) =>
     consumeReceipt(inventory, receipt),
   )
+export function stageInventoryReceipt(storage: Storage, receipt: Receipt) {
+  validateReceipt(receipt)
+  const raw = storage.getItem(PENDING_INVENTORY_RECEIPTS_KEY)
+  const pending = raw ? (JSON.parse(raw) as Receipt[]).map(validateReceipt) : []
+  const existing = pending.find((entry) => entry.id === receipt.id)
+  if (existing && JSON.stringify(existing) !== JSON.stringify(receipt))
+    throw new TypeError('Pending inventory receipt id conflicts')
+  if (!existing)
+    storage.setItem(
+      PENDING_INVENTORY_RECEIPTS_KEY,
+      JSON.stringify([...pending, receipt]),
+    )
+}
+export async function consumePendingInventory(storage: Storage) {
+  const raw = storage.getItem(PENDING_INVENTORY_RECEIPTS_KEY)
+  if (!raw) return
+  const pending = (JSON.parse(raw) as Receipt[]).map(validateReceipt)
+  await updateStoredInventory(storage, (inventory) =>
+    pending.reduce(consumeReceipt, inventory),
+  )
+  storage.removeItem(PENDING_INVENTORY_RECEIPTS_KEY)
+}
