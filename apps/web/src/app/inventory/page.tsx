@@ -12,6 +12,7 @@ import {
   initialInventory,
   parseInventory,
   updateStoredInventory,
+  consumePendingInventory,
 } from '@/lib/inventory-storage'
 
 export default function InventoryPage() {
@@ -23,6 +24,8 @@ export default function InventoryPage() {
   const [pin, setPin] = useState('')
   const [error, setError] = useState(false)
   const busy = useRef(false)
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const returnFocus = useRef<HTMLElement | null>(null)
   useEffect(() => {
     const load = () => {
       try {
@@ -35,9 +38,41 @@ export default function InventoryPage() {
       }
     }
     load()
+    void consumePendingInventory(localStorage)
+      .then(load)
+      .catch(() => setError(true))
     window.addEventListener('storage', load)
     return () => window.removeEventListener('storage', load)
   }, [])
+  useEffect(() => {
+    if (!selected) return
+    returnFocus.current = document.activeElement as HTMLElement
+    const focusable = () => [
+      ...(dialogRef.current?.querySelectorAll<HTMLElement>('input, button') ??
+        []),
+    ]
+    focusable()[0]?.focus()
+    const keydown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !busy.current) setSelected(null)
+      if (event.key !== 'Tab') return
+      const entries = focusable()
+      const first = entries[0]
+      const last = entries.at(-1)
+      if (!first || !last) return
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+    document.addEventListener('keydown', keydown)
+    return () => {
+      document.removeEventListener('keydown', keydown)
+      returnFocus.current?.focus()
+    }
+  }, [selected])
   const save = async () => {
     if (!selected || busy.current) return
     busy.current = true
@@ -138,7 +173,10 @@ export default function InventoryPage() {
             aria-modal="true"
             aria-labelledby="stock-title"
           >
-            <div className="w-full max-w-md rounded-2xl border bg-card p-6 shadow-xl">
+            <div
+              ref={dialogRef}
+              className="w-full max-w-md rounded-2xl border bg-card p-6 shadow-xl"
+            >
               <h2 id="stock-title" className="text-xl font-semibold">
                 {t('adjustStock')} · {selected.name}
               </h2>
