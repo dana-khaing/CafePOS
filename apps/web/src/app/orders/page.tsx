@@ -282,7 +282,7 @@ export default function OrdersPage() {
           initial={payment}
           onComplete={async (completedPayment) => {
             const completedReceipt = createReceipt(order, completedPayment)
-            stageInventoryReceipt(localStorage, completedReceipt)
+            await stageInventoryReceipt(localStorage, completedReceipt)
             await updateStoredShiftLedger(localStorage, (ledger) =>
               recordCashSale(ledger, completedReceipt),
             )
