@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Menu,
   ReceiptText,
+  PackageOpen,
   Settings,
   Utensils,
 } from 'lucide-react'
@@ -33,6 +34,7 @@ const navigation: ReadonlyArray<{
     | 'history'
     | 'shifts'
     | 'kitchen'
+    | 'inventory'
     | 'reports'
     | 'settings'
   href: Route
@@ -41,6 +43,12 @@ const navigation: ReadonlyArray<{
 }> = [
   { label: 'overview', href: '/', icon: LayoutDashboard, available: true },
   { label: 'menu', href: '/menu', icon: BookOpen, available: true },
+  {
+    label: 'inventory',
+    href: '/inventory' as Route,
+    icon: PackageOpen,
+    available: true,
+  },
   {
     label: 'orders',
     href: '/orders' as Route,
