@@ -49,6 +49,7 @@ export function buildSalesReport(
     new Set(refunds.map((refund) => refund.id)).size !== refunds.length
   )
     throw new TypeError('Report identities must be unique')
+  const refundedByReceipt = new Map<string, number>()
   for (const refund of refunds) {
     const receipt = receiptById.get(refund.receiptId)
     if (
@@ -57,6 +58,19 @@ export function buildSalesReport(
       receipt.branchId !== refund.branchId
     )
       throw new TypeError('Report refund does not belong to a receipt')
+    if (
+      refund.amount.currency !== receipt.totals.gross.currency ||
+      Date.parse(refund.createdAt) < Date.parse(receipt.issuedAt)
+    )
+      throw new TypeError('Report refund currency or chronology is invalid')
+    const cumulative = checkedAdd(
+      refundedByReceipt.get(receipt.id) ?? 0,
+      refund.amount.minor,
+      'Receipt refunds',
+    )
+    if (cumulative > receipt.totals.gross.minor)
+      throw new TypeError('Report refunds exceed receipt total')
+    refundedByReceipt.set(receipt.id, cumulative)
   }
   const selected = receipts.filter((receipt) => {
     const time = Date.parse(receipt.issuedAt)

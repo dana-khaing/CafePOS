@@ -85,4 +85,22 @@ describe('sales reports', () => {
       buildSalesReport([], [], { from: 'bad', to: 'also-bad' }),
     ).toThrow('range')
   })
+  it('rejects refunds before or beyond their receipt', () => {
+    expect(() =>
+      buildSalesReport([receipt], [{ ...refund, amount: money(13000) }], {
+        from: '2026-01-18T00:00:00Z',
+        to: '2026-01-19T00:00:00Z',
+      }),
+    ).toThrow('exceed')
+    expect(() =>
+      buildSalesReport(
+        [receipt],
+        [{ ...refund, createdAt: '2026-01-18T08:00:00Z' }],
+        {
+          from: '2026-01-18T00:00:00Z',
+          to: '2026-01-19T00:00:00Z',
+        },
+      ),
+    ).toThrow('chronology')
+  })
 })
