@@ -12,7 +12,10 @@ import {
   type SaleHistory,
 } from '@/lib/history-storage'
 
-const today = () => new Date().toISOString().slice(0, 10)
+const today = () => {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
 export default function ReportsPage() {
   const { money, t } = useLocale()
   const [history, setHistory] = useState<SaleHistory>(emptyHistory)
@@ -59,7 +62,10 @@ export default function ReportsPage() {
               type="date"
               className="ms-3 h-10 rounded-md border bg-background px-3"
               value={date}
-              onChange={(e) => setDate(e.target.value)}
+              onChange={(e) => {
+                if (/^\d{4}-\d{2}-\d{2}$/.test(e.target.value))
+                  setDate(e.target.value)
+              }}
             />
           </label>
         </div>
