@@ -19,6 +19,18 @@ export type SalesReport = Readonly<{
     grossMinor: number
   }>[]
 }>
+function checkedAdd(left: number, right: number, field: string) {
+  const value = left + right
+  if (!Number.isSafeInteger(value))
+    throw new RangeError(`${field} exceeds safe integer range`)
+  return value
+}
+function checkedMultiply(left: number, right: number, field: string) {
+  const value = left * right
+  if (!Number.isSafeInteger(value))
+    throw new RangeError(`${field} exceeds safe integer range`)
+  return value
+}
 
 export function buildSalesReport(
   receipts: readonly Receipt[],
@@ -31,29 +43,45 @@ export function buildSalesReport(
     throw new TypeError('Report range is invalid')
   receipts.forEach(validateReceipt)
   refunds.forEach(validateRefund)
+  const receiptById = new Map(receipts.map((receipt) => [receipt.id, receipt]))
+  if (
+    receiptById.size !== receipts.length ||
+    new Set(refunds.map((refund) => refund.id)).size !== refunds.length
+  )
+    throw new TypeError('Report identities must be unique')
+  for (const refund of refunds) {
+    const receipt = receiptById.get(refund.receiptId)
+    if (
+      !receipt ||
+      receipt.order.id !== refund.orderId ||
+      receipt.branchId !== refund.branchId
+    )
+      throw new TypeError('Report refund does not belong to a receipt')
+  }
   const selected = receipts.filter((receipt) => {
     const time = Date.parse(receipt.issuedAt)
     return time >= from && time < to
   })
-  const currency =
-    selected[0]?.totals.gross.currency ??
-    receipts[0]?.totals.gross.currency ??
-    'THB'
-  if (
-    selected.some((receipt) => receipt.totals.gross.currency !== currency) ||
-    refunds.some((refund) => refund.amount.currency !== currency)
-  )
-    throw new TypeError('Report currencies must match')
-  const grossMinor = selected.reduce(
-    (sum, receipt) => sum + receipt.totals.gross.minor,
-    0,
-  )
   const selectedRefunds = refunds.filter((refund) => {
     const time = Date.parse(refund.createdAt)
     return time >= from && time < to
   })
+  const currency =
+    selected[0]?.totals.gross.currency ??
+    selectedRefunds[0]?.amount.currency ??
+    'THB'
+  if (
+    selected.some((receipt) => receipt.totals.gross.currency !== currency) ||
+    selectedRefunds.some((refund) => refund.amount.currency !== currency)
+  )
+    throw new TypeError('Report currencies must match')
+  const grossMinor = selected.reduce(
+    (sum, receipt) =>
+      checkedAdd(sum, receipt.totals.gross.minor, 'Report gross'),
+    0,
+  )
   const refundMinor = selectedRefunds.reduce(
-    (sum, refund) => sum + refund.amount.minor,
+    (sum, refund) => checkedAdd(sum, refund.amount.minor, 'Report refunds'),
     0,
   )
   const tenders = { cash: 0, card: 0, qr: 0 }
@@ -63,8 +91,16 @@ export function buildSalesReport(
   >()
   for (const receipt of selected) {
     for (const tender of receipt.payment.session.tenders)
-      tenders[tender.method] += tender.amount.minor
-    tenders.cash -= receipt.payment.summary.change.minor
+      tenders[tender.method] = checkedAdd(
+        tenders[tender.method],
+        tender.amount.minor,
+        'Tender total',
+      )
+    tenders.cash = checkedAdd(
+      tenders.cash,
+      -receipt.payment.summary.change.minor,
+      'Cash tender',
+    )
     for (const line of receipt.order.lines) {
       const current = products.get(line.itemId) ?? {
         itemId: line.itemId,
@@ -72,14 +108,21 @@ export function buildSalesReport(
         quantity: 0,
         grossMinor: 0,
       }
-      current.quantity += line.quantity
-      current.grossMinor +=
-        (line.unitPrice.minor +
-          line.modifiers.reduce(
-            (sum, option) => sum + option.priceDelta.minor,
-            0,
-          )) *
-        line.quantity
+      current.quantity = checkedAdd(
+        current.quantity,
+        line.quantity,
+        'Product quantity',
+      )
+      const unit = line.modifiers.reduce(
+        (sum, option) =>
+          checkedAdd(sum, option.priceDelta.minor, 'Product unit value'),
+        line.unitPrice.minor,
+      )
+      current.grossMinor = checkedAdd(
+        current.grossMinor,
+        checkedMultiply(unit, line.quantity, 'Product value'),
+        'Product value',
+      )
       products.set(line.itemId, current)
     }
   }
@@ -90,7 +133,7 @@ export function buildSalesReport(
     orderCount: selected.length,
     grossMinor,
     refundMinor,
-    netMinor: grossMinor - refundMinor,
+    netMinor: checkedAdd(grossMinor, -refundMinor, 'Report net'),
     averageOrderMinor: selected.length
       ? Math.round(grossMinor / selected.length)
       : 0,
