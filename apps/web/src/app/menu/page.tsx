@@ -15,6 +15,7 @@ import {
   parseStoredMenu,
   serializeMenu,
 } from '@/lib/menu-storage'
+import { withCriticalStorageLock } from '@/lib/storage-lock'
 
 const initialMenu: Menu = {
   currency: 'THB',
@@ -153,7 +154,9 @@ export default function MenuPage() {
   useEffect(() => {
     if (storageReady) {
       try {
-        window.localStorage.setItem(MENU_STORAGE_KEY, serializeMenu(menu))
+        void withCriticalStorageLock(() =>
+          window.localStorage.setItem(MENU_STORAGE_KEY, serializeMenu(menu)),
+        )
       } catch {
         // Storage may be unavailable in private or locked-down browser modes.
       }
