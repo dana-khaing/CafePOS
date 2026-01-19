@@ -58,6 +58,7 @@ import {
   consumePendingInventory,
   stageInventoryReceipt,
 } from '@/lib/inventory-storage'
+import { withCriticalStorageLock } from '@/lib/storage-lock'
 
 const vat = {
   id: 'vat7',
@@ -188,7 +189,9 @@ export default function OrdersPage() {
   useEffect(() => {
     if (!storageReady) return
     try {
-      localStorage.setItem(ORDER_STORAGE_KEY, serializeOrder(order))
+      void withCriticalStorageLock(() =>
+        localStorage.setItem(ORDER_STORAGE_KEY, serializeOrder(order)),
+      )
     } catch {
       // Ordering remains usable when browser storage is unavailable.
     }
@@ -251,21 +254,30 @@ export default function OrdersPage() {
           submittedAt: new Date().toISOString(),
           eventId: `order:${order.id}:v1`,
         }).event
-      localStorage.setItem(
-        PENDING_ORDER_SUBMISSION_KEY,
-        serializePendingOrderSubmission(event),
+      await withCriticalStorageLock(() =>
+        localStorage.setItem(
+          PENDING_ORDER_SUBMISSION_KEY,
+          serializePendingOrderSubmission(event),
+        ),
       )
       pendingEventRef.current = event
       await enqueueSubmittedOrder(event)
       pendingEventRef.current = null
-      localStorage.removeItem(PENDING_ORDER_SUBMISSION_KEY)
+      await withCriticalStorageLock(() =>
+        localStorage.removeItem(PENDING_ORDER_SUBMISSION_KEY),
+      )
       const submitted = validateSubmittedOrderEvent(event)
       const nextPayment = createPaymentSession(
         `payment-${submitted.id}`,
         submitted.id,
         submitted.totals.gross,
       )
-      localStorage.setItem(PAYMENT_STORAGE_KEY, serializePayment(nextPayment))
+      await withCriticalStorageLock(() =>
+        localStorage.setItem(
+          PAYMENT_STORAGE_KEY,
+          serializePayment(nextPayment),
+        ),
+      )
       setPayment(nextPayment)
       setSubmission('sent')
     } catch {
@@ -291,19 +303,21 @@ export default function OrdersPage() {
             } catch {
               // The durable projection queue remains available for retry.
             }
-            localStorage.setItem(
-              RECEIPT_STORAGE_KEY,
-              serializeReceipt(completedReceipt),
-            )
-            localStorage.setItem(
-              HISTORY_STORAGE_KEY,
-              serializeSaleHistory(
-                appendReceipt(
-                  parseSaleHistory(localStorage.getItem(HISTORY_STORAGE_KEY)),
-                  completedReceipt,
+            await withCriticalStorageLock(() => {
+              localStorage.setItem(
+                RECEIPT_STORAGE_KEY,
+                serializeReceipt(completedReceipt),
+              )
+              localStorage.setItem(
+                HISTORY_STORAGE_KEY,
+                serializeSaleHistory(
+                  appendReceipt(
+                    parseSaleHistory(localStorage.getItem(HISTORY_STORAGE_KEY)),
+                    completedReceipt,
+                  ),
                 ),
-              ),
-            )
+              )
+            })
             setReceipt(completedReceipt)
             setPayment(null)
             setOrder(emptyOrder())
@@ -316,7 +330,9 @@ export default function OrdersPage() {
         <ReceiptDialog
           receipt={receipt}
           onDone={() => {
-            localStorage.removeItem(RECEIPT_STORAGE_KEY)
+            void withCriticalStorageLock(() =>
+              localStorage.removeItem(RECEIPT_STORAGE_KEY),
+            )
             setReceipt(null)
           }}
         />

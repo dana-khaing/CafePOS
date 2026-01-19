@@ -25,6 +25,7 @@ import {
   stageRefund,
   type SaleHistory,
 } from '@/lib/history-storage'
+import { withCriticalStorageLock } from '@/lib/storage-lock'
 
 export default function HistoryPage() {
   const { locale, money: formatMoney, t } = useLocale()
@@ -42,8 +43,10 @@ export default function HistoryPage() {
       setHistory(parseSaleHistory(localStorage.getItem(HISTORY_STORAGE_KEY))),
     [],
   )
-  const save = (next: SaleHistory) => {
-    localStorage.setItem(HISTORY_STORAGE_KEY, serializeSaleHistory(next))
+  const save = async (next: SaleHistory) => {
+    await withCriticalStorageLock(() =>
+      localStorage.setItem(HISTORY_STORAGE_KEY, serializeSaleHistory(next)),
+    )
     setHistory(next)
   }
   const shown = useMemo(
@@ -70,14 +73,14 @@ export default function HistoryPage() {
     setError(false)
     try {
       const staged = stageRefund(history, event)
-      save(staged)
+      await save(staged)
       setPendingRetry(event)
       await enqueueRefund(receipt, event, managerPin)
       await updateStoredShiftLedger(localStorage, (ledger) =>
         recordCashRefund(ledger, receipt, validateRefundEvent(event)),
       )
       const settled = settleRefund(staged, event.id)
-      save(settled)
+      await save(settled)
       setSelected(null)
       setAmount('')
       setReason('')

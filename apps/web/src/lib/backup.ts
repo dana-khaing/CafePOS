@@ -21,7 +21,7 @@ import {
 } from './payment-storage'
 import { RECEIPT_STORAGE_KEY } from './receipt-storage'
 import { SHIFT_STORAGE_KEY, validateShiftLedger } from './shift-storage'
-import { CRITICAL_STORAGE_LOCK } from './storage-lock'
+import { CRITICAL_STORAGE_LOCK, withCriticalStorageLock } from './storage-lock'
 
 export const BACKUP_KEYS = [
   HISTORY_STORAGE_KEY,
@@ -57,21 +57,24 @@ async function sha256(value: string) {
 export async function createBackup(
   storage: Storage,
   createdAt = new Date().toISOString(),
+  locks: LockManager | null | undefined = globalThis.navigator?.locks,
 ): Promise<CafeBackup> {
   if (Number.isNaN(Date.parse(createdAt)))
     throw new TypeError('Backup time is invalid')
-  const data: Record<string, string> = {}
-  for (const key of BACKUP_KEYS) {
-    const value = storage.getItem(key)
-    if (value !== null) data[key] = value
-  }
-  const unsigned = {
-    product: 'CafePOS' as const,
-    schema: 1 as const,
-    createdAt,
-    data,
-  }
-  return { ...unsigned, sha256: await sha256(canonical(unsigned)) }
+  return withCriticalStorageLock(async () => {
+    const data: Record<string, string> = {}
+    for (const key of BACKUP_KEYS) {
+      const value = storage.getItem(key)
+      if (value !== null) data[key] = value
+    }
+    const unsigned = {
+      product: 'CafePOS' as const,
+      schema: 1 as const,
+      createdAt,
+      data,
+    }
+    return { ...unsigned, sha256: await sha256(canonical(unsigned)) }
+  }, locks)
 }
 export async function validateBackup(value: CafeBackup) {
   if (
