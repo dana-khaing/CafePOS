@@ -188,13 +188,11 @@ export default function OrdersPage() {
 
   useEffect(() => {
     if (!storageReady) return
-    try {
-      void withCriticalStorageLock(() =>
-        localStorage.setItem(ORDER_STORAGE_KEY, serializeOrder(order)),
-      )
-    } catch {
+    void withCriticalStorageLock(() =>
+      localStorage.setItem(ORDER_STORAGE_KEY, serializeOrder(order)),
+    ).catch(() => {
       // Ordering remains usable when browser storage is unavailable.
-    }
+    })
   }, [order, storageReady])
 
   const add = (product: Product) => {
@@ -329,11 +327,15 @@ export default function OrdersPage() {
       {receipt && (
         <ReceiptDialog
           receipt={receipt}
-          onDone={() => {
-            void withCriticalStorageLock(() =>
-              localStorage.removeItem(RECEIPT_STORAGE_KEY),
-            )
-            setReceipt(null)
+          onDone={async () => {
+            try {
+              await withCriticalStorageLock(() =>
+                localStorage.removeItem(RECEIPT_STORAGE_KEY),
+              )
+              setReceipt(null)
+            } catch {
+              setSubmission('error')
+            }
           }}
         />
       )}
