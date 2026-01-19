@@ -1,15 +1,42 @@
-import { validateInventory, validateMenu } from '@cafepos/domain'
+import {
+  validateCompletedPaymentEvent,
+  validateDraftOrder,
+  validateInventory,
+  validateMenu,
+  validatePaymentSession,
+  validateReceipt,
+  validateSubmittedOrderEvent,
+} from '@cafepos/domain'
 import { HISTORY_STORAGE_KEY, validateSaleHistory } from './history-storage'
-import { INVENTORY_STORAGE_KEY } from './inventory-storage'
+import {
+  INVENTORY_STORAGE_KEY,
+  PENDING_INVENTORY_RECEIPTS_KEY,
+} from './inventory-storage'
 import { MENU_STORAGE_KEY } from './menu-storage'
+import { ORDER_STORAGE_KEY } from './order-storage'
+import { PENDING_ORDER_SUBMISSION_KEY } from './order-submission'
+import {
+  PAYMENT_STORAGE_KEY,
+  PENDING_PAYMENT_EVENT_KEY,
+} from './payment-storage'
+import { RECEIPT_STORAGE_KEY } from './receipt-storage'
 import { SHIFT_STORAGE_KEY, validateShiftLedger } from './shift-storage'
+import { CRITICAL_STORAGE_LOCK } from './storage-lock'
 
 export const BACKUP_KEYS = [
   HISTORY_STORAGE_KEY,
   INVENTORY_STORAGE_KEY,
+  PENDING_INVENTORY_RECEIPTS_KEY,
+  `${PENDING_INVENTORY_RECEIPTS_KEY}.quarantine`,
   MENU_STORAGE_KEY,
   SHIFT_STORAGE_KEY,
+  ORDER_STORAGE_KEY,
+  PENDING_ORDER_SUBMISSION_KEY,
+  PAYMENT_STORAGE_KEY,
+  PENDING_PAYMENT_EVENT_KEY,
+  RECEIPT_STORAGE_KEY,
 ] as const
+const INVENTORY_QUARANTINE_KEY = `${PENDING_INVENTORY_RECEIPTS_KEY}.quarantine`
 export type CafeBackup = Readonly<{
   product: 'CafePOS'
   schema: 1
@@ -67,30 +94,60 @@ export async function validateBackup(value: CafeBackup) {
   for (const [key, raw] of Object.entries(value.data)) {
     if (typeof raw !== 'string')
       throw new TypeError('Backup values must be strings')
-    const parsed = JSON.parse(raw) as never
+    if (key === INVENTORY_QUARANTINE_KEY) continue
+    const parsed = JSON.parse(raw)
     if (key === HISTORY_STORAGE_KEY) validateSaleHistory(parsed)
     else if (key === INVENTORY_STORAGE_KEY) validateInventory(parsed)
     else if (key === MENU_STORAGE_KEY) validateMenu(parsed)
     else if (key === SHIFT_STORAGE_KEY) validateShiftLedger(parsed)
+    else if (key === ORDER_STORAGE_KEY) validateDraftOrder(parsed)
+    else if (key === PENDING_ORDER_SUBMISSION_KEY)
+      validateSubmittedOrderEvent(parsed)
+    else if (key === PAYMENT_STORAGE_KEY) validatePaymentSession(parsed)
+    else if (key === PENDING_PAYMENT_EVENT_KEY)
+      validateCompletedPaymentEvent(parsed)
+    else if (key === RECEIPT_STORAGE_KEY) validateReceipt(parsed)
+    else if (key === PENDING_INVENTORY_RECEIPTS_KEY) {
+      if (!Array.isArray(parsed))
+        throw new TypeError('Pending inventory receipts are invalid')
+      parsed.forEach(validateReceipt)
+    }
   }
   return value
 }
-export async function restoreBackup(storage: Storage, value: CafeBackup) {
+export async function restoreBackup(
+  storage: Storage,
+  value: CafeBackup,
+  locks: LockManager | null | undefined = globalThis.navigator?.locks,
+) {
   await validateBackup(value)
-  const previous = new Map(
-    BACKUP_KEYS.map((key) => [key, storage.getItem(key)]),
-  )
-  try {
-    for (const key of BACKUP_KEYS) {
-      const next = value.data[key]
-      if (next === undefined) storage.removeItem(key)
-      else storage.setItem(key, next)
+  if (!locks) throw new TypeError('Browser-wide restore locking is unavailable')
+  await locks.request(CRITICAL_STORAGE_LOCK, () => {
+    const previous = new Map(
+      BACKUP_KEYS.map((key) => [key, storage.getItem(key)]),
+    )
+    try {
+      for (const key of BACKUP_KEYS) {
+        const next = value.data[key]
+        if (next === undefined) storage.removeItem(key)
+        else storage.setItem(key, next)
+      }
+    } catch (error) {
+      const rollbackErrors: unknown[] = []
+      for (const [key, old] of previous) {
+        try {
+          if (old === null) storage.removeItem(key)
+          else storage.setItem(key, old)
+        } catch (rollbackError) {
+          rollbackErrors.push(rollbackError)
+        }
+      }
+      if (rollbackErrors.length)
+        throw new AggregateError(
+          [error, ...rollbackErrors],
+          'Restore and rollback failed',
+        )
+      throw error
     }
-  } catch (error) {
-    for (const [key, old] of previous) {
-      if (old === null) storage.removeItem(key)
-      else storage.setItem(key, old)
-    }
-    throw error
-  }
+  })
 }

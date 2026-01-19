@@ -29,13 +29,13 @@ export default function BackupPage() {
       anchor.href = url
       anchor.download = `cafepos-backup-${backup.createdAt.slice(0, 10)}.json`
       anchor.click()
-      URL.revokeObjectURL(url)
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
     } catch {
       setStatus('error')
     }
   }
   const selectFile = async (file: File | undefined) => {
-    if (!file || file.size > 5_000_000) {
+    if (!file) {
       setStatus('error')
       return
     }
