@@ -6,6 +6,7 @@ import {
   type Refund,
   validateCashShift,
 } from '@cafepos/domain'
+import { CRITICAL_STORAGE_LOCK } from './storage-lock'
 export const SHIFT_STORAGE_KEY = 'cafepos.cash-shifts.v1'
 export type ShiftLedger = Readonly<{
   current: CashShift | null
@@ -49,7 +50,7 @@ export async function updateStoredShiftLedger(
   locks: LockManager | null | undefined = globalThis.navigator?.locks,
 ) {
   if (!locks) throw new TypeError('Browser-wide drawer locking is unavailable')
-  return locks.request(SHIFT_STORAGE_KEY, () => {
+  return locks.request(CRITICAL_STORAGE_LOCK, () => {
     const next = update(parseShiftLedger(storage.getItem(SHIFT_STORAGE_KEY)))
     storage.setItem(SHIFT_STORAGE_KEY, serializeShiftLedger(next))
     return next

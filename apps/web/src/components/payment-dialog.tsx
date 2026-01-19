@@ -23,6 +23,7 @@ import {
   serializePayment,
   serializePendingPaymentEvent,
 } from '@/lib/payment-storage'
+import { withCriticalStorageLock } from '@/lib/storage-lock'
 
 export function PaymentDialog({
   initial,
@@ -67,15 +68,19 @@ export function PaymentDialog({
           completedAt: new Date().toISOString(),
           eventId: `payment:${paid.id}:v1`,
         }).event
-      localStorage.setItem(
-        PENDING_PAYMENT_EVENT_KEY,
-        serializePendingPaymentEvent(event),
+      await withCriticalStorageLock(() =>
+        localStorage.setItem(
+          PENDING_PAYMENT_EVENT_KEY,
+          serializePendingPaymentEvent(event),
+        ),
       )
       pendingEventRef.current = event
       await enqueuePayment(event)
       await onComplete(validateCompletedPaymentEvent(event))
-      localStorage.removeItem(PAYMENT_STORAGE_KEY)
-      localStorage.removeItem(PENDING_PAYMENT_EVENT_KEY)
+      await withCriticalStorageLock(() => {
+        localStorage.removeItem(PAYMENT_STORAGE_KEY)
+        localStorage.removeItem(PENDING_PAYMENT_EVENT_KEY)
+      })
       pendingEventRef.current = null
     } catch {
       setError(true)
@@ -98,7 +103,9 @@ export function PaymentDialog({
           : { reference: `${method.toUpperCase()}-${Date.now()}` }),
       })
       setSession(updated)
-      localStorage.setItem(PAYMENT_STORAGE_KEY, serializePayment(updated))
+      await withCriticalStorageLock(() =>
+        localStorage.setItem(PAYMENT_STORAGE_KEY, serializePayment(updated)),
+      )
       if (updated.status === 'paid') await sendPaidPayment(updated)
     } catch {
       setError(true)
