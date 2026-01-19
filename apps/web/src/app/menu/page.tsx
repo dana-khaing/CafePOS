@@ -153,13 +153,11 @@ export default function MenuPage() {
 
   useEffect(() => {
     if (storageReady) {
-      try {
-        void withCriticalStorageLock(() =>
-          window.localStorage.setItem(MENU_STORAGE_KEY, serializeMenu(menu)),
-        )
-      } catch {
+      void withCriticalStorageLock(() =>
+        window.localStorage.setItem(MENU_STORAGE_KEY, serializeMenu(menu)),
+      ).catch(() => {
         // Storage may be unavailable in private or locked-down browser modes.
-      }
+      })
     }
   }, [menu, storageReady])
 
