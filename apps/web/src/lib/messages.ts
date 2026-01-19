@@ -172,6 +172,22 @@ export const messages = {
     tenderMix: 'Tender mix',
     topProducts: 'Top products',
     noReportData: 'No sales for this date.',
+    backup: 'Backup & recovery',
+    backupDescription:
+      'Protect critical sales, inventory, menu, and drawer records.',
+    backupError: 'The backup is invalid or the operation failed.',
+    restoreComplete:
+      'Backup restored. Reload open screens to use the restored data.',
+    exportBackup: 'Export backup',
+    exportBackupDescription:
+      'Download a checksummed snapshot of critical local records.',
+    downloadBackup: 'Download backup',
+    restoreBackup: 'Restore backup',
+    restoreBackupDescription:
+      'Validate a CafePOS backup before manager-approved replacement.',
+    chooseBackup: 'Choose backup file',
+    verifiedBackup: 'Checksum and records verified',
+    confirmRestore: 'Replace local records',
   },
   th: {
     overview: 'ภาพรวม',
@@ -343,6 +359,19 @@ export const messages = {
     tenderMix: 'สัดส่วนการชำระเงิน',
     topProducts: 'สินค้าขายดี',
     noReportData: 'ไม่มีข้อมูลขายในวันนี้',
+    backup: 'สำรองและกู้คืน',
+    backupDescription: 'ปกป้องข้อมูลการขาย สต็อก เมนู และลิ้นชักที่สำคัญ',
+    backupError: 'ไฟล์สำรองไม่ถูกต้องหรือดำเนินการไม่สำเร็จ',
+    restoreComplete: 'กู้คืนแล้ว โปรดโหลดหน้าที่เปิดอยู่ใหม่',
+    exportBackup: 'ส่งออกข้อมูลสำรอง',
+    exportBackupDescription: 'ดาวน์โหลดสำเนาข้อมูลสำคัญพร้อมผลตรวจสอบ',
+    downloadBackup: 'ดาวน์โหลด',
+    restoreBackup: 'กู้คืนข้อมูล',
+    restoreBackupDescription:
+      'ตรวจสอบไฟล์ CafePOS ก่อนแทนที่โดยผู้จัดการอนุมัติ',
+    chooseBackup: 'เลือกไฟล์สำรอง',
+    verifiedBackup: 'ตรวจสอบไฟล์และข้อมูลแล้ว',
+    confirmRestore: 'แทนที่ข้อมูลในเครื่อง',
   },
 } as const
 
