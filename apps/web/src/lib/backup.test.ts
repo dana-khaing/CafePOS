@@ -16,6 +16,9 @@ const storage = (values = new Map<string, string>()) =>
       values.delete(key)
     },
   }) as unknown as Storage
+const locks = {
+  request: async (_name: string, callback: () => unknown) => callback(),
+} as unknown as LockManager
 
 describe('backup', () => {
   it('creates, validates, and restores a checksummed backup', async () => {
@@ -25,7 +28,7 @@ describe('backup', () => {
     const backup = await createBackup(source, '2026-01-19T09:00:00Z')
     expect(await validateBackup(backup)).toEqual(backup)
     const target = storage()
-    await restoreBackup(target, backup)
+    await restoreBackup(target, backup, locks)
     expect(target.getItem(HISTORY_STORAGE_KEY)).toBe(
       serializeSaleHistory(emptyHistory()),
     )
@@ -34,7 +37,11 @@ describe('backup', () => {
     const backup = await createBackup(storage(), '2026-01-19T09:00:00Z')
     const target = storage(new Map([[HISTORY_STORAGE_KEY, 'original']]))
     await expect(
-      restoreBackup(target, { ...backup, createdAt: '2026-01-20T09:00:00Z' }),
+      restoreBackup(
+        target,
+        { ...backup, createdAt: '2026-01-20T09:00:00Z' },
+        locks,
+      ),
     ).rejects.toThrow('checksum')
     expect(target.getItem(HISTORY_STORAGE_KEY)).toBe('original')
   })
