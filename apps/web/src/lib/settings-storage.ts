@@ -20,8 +20,11 @@ export const defaultSettings = (): CafeSettings => ({
 export function validateSettings(value: CafeSettings) {
   if (
     !value.cafeName?.trim() ||
+    value.cafeName.length > 80 ||
     !value.branchName?.trim() ||
+    value.branchName.length > 80 ||
     !value.receiptFooter?.trim() ||
+    value.receiptFooter.length > 500 ||
     value.version !== 1 ||
     ![58, 80].includes(value.printerWidth)
   )
