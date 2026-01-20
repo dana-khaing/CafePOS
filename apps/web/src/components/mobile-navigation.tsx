@@ -86,7 +86,12 @@ const navigation: ReadonlyArray<{
     icon: Settings,
     available: true,
   },
-  { label: 'settings', href: '/', icon: Settings, available: false },
+  {
+    label: 'settings',
+    href: '/settings' as Route,
+    icon: Settings,
+    available: true,
+  },
 ]
 
 export function MobileNavigation() {
