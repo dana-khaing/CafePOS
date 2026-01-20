@@ -5,37 +5,48 @@ import { buildSalesReport } from '@cafepos/domain'
 import { AppShell } from '@/components/app-shell'
 import { useLocale } from '@/components/locale-provider'
 import { Card, CardContent } from '@/components/ui/card'
+import { businessDayRange, dateInTimezone } from '@/lib/business-time'
 import {
   HISTORY_STORAGE_KEY,
   emptyHistory,
   parseSaleHistory,
   type SaleHistory,
 } from '@/lib/history-storage'
+import {
+  SETTINGS_STORAGE_KEY,
+  defaultSettings,
+  parseSettings,
+} from '@/lib/settings-storage'
 
-const today = () => {
-  const now = new Date()
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-}
 export default function ReportsPage() {
   const { money, t } = useLocale()
   const [history, setHistory] = useState<SaleHistory>(emptyHistory)
-  const [date, setDate] = useState(today)
+  const [settings, setSettings] = useState(defaultSettings)
+  const [date, setDate] = useState(() =>
+    dateInTimezone(new Date(), defaultSettings().timezone),
+  )
   useEffect(() => {
-    const load = () =>
+    const load = () => {
       setHistory(parseSaleHistory(localStorage.getItem(HISTORY_STORAGE_KEY)))
+      try {
+        const next = parseSettings(localStorage.getItem(SETTINGS_STORAGE_KEY))
+        setSettings(next)
+        setDate(dateInTimezone(new Date(), next.timezone))
+      } catch {
+        // Keep validated defaults if settings storage is corrupt.
+      }
+    }
     load()
     window.addEventListener('storage', load)
     return () => window.removeEventListener('storage', load)
   }, [])
   const report = useMemo(() => {
-    const from = new Date(`${date}T00:00:00`)
-    const to = new Date(from)
-    to.setDate(to.getDate() + 1)
+    const { from, to } = businessDayRange(date, settings.timezone)
     return buildSalesReport(history.receipts, history.refunds, {
-      from: from.toISOString(),
-      to: to.toISOString(),
+      from,
+      to,
     })
-  }, [date, history])
+  }, [date, history, settings.timezone])
   const format = (minor: number) => money(minor / 100)
   const tenderRows: ReadonlyArray<{
     key: 'cashPayment' | 'card' | 'qr'
