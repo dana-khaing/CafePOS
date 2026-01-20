@@ -19,5 +19,5 @@
 
 ## Rollback
 
-- Stop new sales, export the current backup, deploy the previous known-good build, and restore only a backup validated by that build's supported schema.
+- Stop new sales and export a current backup for forward recovery. Deploy the previous known-good build without importing a newer-schema backup; restore only a backup originally created and validated by the target build.
 - Record the release version, branch, operator, backup checksum, and incident reason.

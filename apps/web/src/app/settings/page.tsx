@@ -30,7 +30,10 @@ export default function SettingsPage() {
   const update = <K extends keyof CafeSettings>(
     key: K,
     value: CafeSettings[K],
-  ) => setSettings((current) => ({ ...current, [key]: value }))
+  ) => {
+    setStatus('idle')
+    setSettings((current) => ({ ...current, [key]: value }))
+  }
   const save = async () => {
     if (busy.current) return
     busy.current = true
@@ -78,6 +81,7 @@ export default function SettingsPage() {
                 {t('cafeLabel')}
                 <input
                   className="mt-2 h-11 w-full rounded-md border bg-background px-3"
+                  maxLength={80}
                   value={settings.cafeName}
                   onChange={(e) => update('cafeName', e.target.value)}
                 />
@@ -86,6 +90,7 @@ export default function SettingsPage() {
                 {t('branchLabel')}
                 <input
                   className="mt-2 h-11 w-full rounded-md border bg-background px-3"
+                  maxLength={80}
                   value={settings.branchName}
                   onChange={(e) => update('branchName', e.target.value)}
                 />
@@ -115,6 +120,7 @@ export default function SettingsPage() {
                 {t('receiptFooter')}
                 <input
                   className="mt-2 h-11 w-full rounded-md border bg-background px-3"
+                  maxLength={500}
                   value={settings.receiptFooter}
                   onChange={(e) => update('receiptFooter', e.target.value)}
                 />

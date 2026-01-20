@@ -98,6 +98,9 @@ textarea {
     background: white;
   }
   .receipt-paper {
+    box-sizing: border-box;
+    width: var(--receipt-width);
+    max-width: var(--receipt-width) !important;
     margin: 0 auto;
     border: 0;
     box-shadow: none;
