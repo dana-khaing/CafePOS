@@ -2,7 +2,12 @@
 
 import { Printer, ReceiptText } from 'lucide-react'
 import type { Receipt } from '@cafepos/domain'
-import { useEffect, useRef, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import {
+  SETTINGS_STORAGE_KEY,
+  defaultSettings,
+  parseSettings,
+} from '@/lib/settings-storage'
 import { useLocale } from './locale-provider'
 import { Button } from './ui/button'
 
@@ -15,9 +20,15 @@ export function ReceiptDialog({
 }) {
   const { locale, money, t } = useLocale()
   const dialogRef = useRef<HTMLDivElement>(null)
+  const [settings, setSettings] = useState(defaultSettings)
   const amount = (minor: number) => money(minor / 100)
   useEffect(() => {
     dialogRef.current?.focus()
+    try {
+      setSettings(parseSettings(localStorage.getItem(SETTINGS_STORAGE_KEY)))
+    } catch {
+      // Safe defaults remain available if settings are corrupt.
+    }
   }, [])
   const containFocus = (event: KeyboardEvent) => {
     if (event.key !== 'Tab') return
@@ -47,7 +58,10 @@ export function ReceiptDialog({
       tabIndex={-1}
       onKeyDown={containFocus}
     >
-      <article className="receipt-paper w-full max-w-md rounded-2xl border bg-card p-6 shadow-2xl">
+      <article
+        className="receipt-paper w-full rounded-2xl border bg-card p-6 shadow-2xl"
+        style={{ maxWidth: settings.printerWidth === 58 ? '22rem' : '28rem' }}
+      >
         <header className="text-center">
           <ReceiptText
             className="mx-auto size-8 text-primary"
@@ -56,7 +70,9 @@ export function ReceiptDialog({
           <h2 id="receipt-title" className="mt-2 text-2xl font-semibold">
             {t('receipt')}
           </h2>
-          <p className="text-sm text-muted-foreground">{t('cafeName')}</p>
+          <p className="text-sm text-muted-foreground">
+            {settings.cafeName} · {settings.branchName}
+          </p>
         </header>
         <dl className="my-5 grid grid-cols-2 gap-1 border-y py-4 text-sm">
           <dt>{t('receiptNumber')}</dt>
@@ -66,6 +82,7 @@ export function ReceiptDialog({
             {new Intl.DateTimeFormat(locale === 'th' ? 'th-TH' : 'en-GB', {
               dateStyle: 'medium',
               timeStyle: 'short',
+              timeZone: settings.timezone,
             }).format(new Date(receipt.issuedAt))}
           </dd>
           <dt>{t('order')}</dt>
@@ -125,7 +142,7 @@ export function ReceiptDialog({
             </div>
           )}
         </dl>
-        <p className="mt-6 text-center text-sm">{t('thankYou')}</p>
+        <p className="mt-6 text-center text-sm">{settings.receiptFooter}</p>
         <div className="receipt-actions mt-6 grid grid-cols-2 gap-3">
           <Button variant="outline" onClick={() => window.print()}>
             <Printer aria-hidden="true" />
