@@ -5,6 +5,11 @@ import {
   emptyHistory,
   serializeSaleHistory,
 } from './history-storage'
+import {
+  SETTINGS_STORAGE_KEY,
+  defaultSettings,
+  serializeSettings,
+} from './settings-storage'
 
 const storage = (values = new Map<string, string>()) =>
   ({
@@ -69,5 +74,20 @@ describe('backup', () => {
     release()
     await pending
     expect(reads).toBeGreaterThan(0)
+  })
+  it('includes and restores validated branch settings', async () => {
+    const encoded = serializeSettings({
+      ...defaultSettings(),
+      cafeName: 'คาเฟ่',
+    })
+    const backup = await createBackup(
+      storage(new Map([[SETTINGS_STORAGE_KEY, encoded]])),
+      '2026-01-20T09:00:00Z',
+      locks,
+    )
+    expect(backup.schema).toBe(2)
+    const target = storage()
+    await restoreBackup(target, backup, locks)
+    expect(target.getItem(SETTINGS_STORAGE_KEY)).toBe(encoded)
   })
 })
