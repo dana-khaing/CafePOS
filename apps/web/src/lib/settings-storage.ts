@@ -40,9 +40,14 @@ export const parseSettings = (raw: string | null) =>
   raw ? validateSettings(JSON.parse(raw) as CafeSettings) : defaultSettings()
 export const serializeSettings = (value: CafeSettings) =>
   JSON.stringify(validateSettings(value))
-export async function saveSettings(storage: Storage, value: CafeSettings) {
+export async function saveSettings(
+  storage: Storage,
+  value: CafeSettings,
+  locks: LockManager | null | undefined = globalThis.navigator?.locks,
+) {
   validateSettings(value)
-  await withCriticalStorageLock(() =>
-    storage.setItem(SETTINGS_STORAGE_KEY, serializeSettings(value)),
+  await withCriticalStorageLock(
+    () => storage.setItem(SETTINGS_STORAGE_KEY, serializeSettings(value)),
+    locks,
   )
 }

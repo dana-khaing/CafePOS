@@ -41,7 +41,7 @@ export const BACKUP_KEYS = [
 const INVENTORY_QUARANTINE_KEY = `${PENDING_INVENTORY_RECEIPTS_KEY}.quarantine`
 export type CafeBackup = Readonly<{
   product: 'CafePOS'
-  schema: 1
+  schema: 2
   createdAt: string
   data: Readonly<Record<string, string>>
   sha256: string
@@ -71,7 +71,7 @@ export async function createBackup(
     }
     const unsigned = {
       product: 'CafePOS' as const,
-      schema: 1 as const,
+      schema: 2 as const,
       createdAt,
       data,
     }
@@ -81,7 +81,7 @@ export async function createBackup(
 export async function validateBackup(value: CafeBackup) {
   if (
     value.product !== 'CafePOS' ||
-    value.schema !== 1 ||
+    value.schema !== 2 ||
     Number.isNaN(Date.parse(value.createdAt)) ||
     !value.data ||
     typeof value.data !== 'object'

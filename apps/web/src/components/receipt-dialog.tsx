@@ -2,7 +2,13 @@
 
 import { Printer, ReceiptText } from 'lucide-react'
 import type { Receipt } from '@cafepos/domain'
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent,
+} from 'react'
 import {
   SETTINGS_STORAGE_KEY,
   defaultSettings,
@@ -60,7 +66,12 @@ export function ReceiptDialog({
     >
       <article
         className="receipt-paper w-full rounded-2xl border bg-card p-6 shadow-2xl"
-        style={{ maxWidth: settings.printerWidth === 58 ? '22rem' : '28rem' }}
+        style={
+          {
+            maxWidth: settings.printerWidth === 58 ? '22rem' : '28rem',
+            '--receipt-width': `${settings.printerWidth}mm`,
+          } as CSSProperties
+        }
       >
         <header className="text-center">
           <ReceiptText
