@@ -7,8 +7,10 @@ internet outages.
 
 ## Current status
 
-The repository contains the project foundation. Product capabilities are added
-incrementally through one feature branch and pull request per dated milestone.
+The repository contains the full 20-feature POS system and its supporting
+branch-hub workflow. Ongoing work now focuses on documentation, process
+refinement, and release readiness through one dated feature branch and pull
+request per milestone.
 
 ## Workspace
 
@@ -40,6 +42,9 @@ The staff interface supports English and Thai. The header language control
 stores its selection on the device, while currency and dates use the browser's
 locale-aware `Intl` formatters.
 
+The release checklist lives in [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md)
+and should be followed before production deployment.
+
 ## Quality checks
 
 ```bash
@@ -48,13 +53,15 @@ pnpm lint
 pnpm typecheck
 pnpm test
 pnpm build
+pnpm audit --audit-level high
 ```
 
 ## Security and fiscal configuration
 
 Never commit production credentials or customer data. Tax, receipt, retention,
 and fiscal-device settings must be reviewed by qualified advisers in each
-country before a production deployment.
+country before a production deployment. Follow the release checklist for the
+minimum operator smoke test and backup validation steps.
 
 ## License
 
