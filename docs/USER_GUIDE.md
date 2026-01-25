@@ -216,4 +216,3 @@ For a normal shift:
 - Wrong prices: verify the menu item price and modifier prices.
 - Inventory mismatch: do a manual stock count and adjust the item.
 - Orders not submitting: check branch connectivity and local storage status.
-

@@ -55,7 +55,11 @@ import {
   parseSaleHistory,
   serializeSaleHistory,
 } from '@/lib/history-storage'
-import { defaultMenu, MENU_STORAGE_KEY, parseStoredMenu } from '@/lib/menu-storage'
+import {
+  defaultMenu,
+  MENU_STORAGE_KEY,
+  parseStoredMenu,
+} from '@/lib/menu-storage'
 import { recordCashSale, updateStoredShiftLedger } from '@/lib/shift-storage'
 import {
   consumePendingInventory,
@@ -109,7 +113,10 @@ export default function OrdersPage() {
     [menu.modifierGroups],
   )
   const sortedCategories = useMemo(
-    () => [...menu.categories].sort((left, right) => left.sortOrder - right.sortOrder),
+    () =>
+      [...menu.categories].sort(
+        (left, right) => left.sortOrder - right.sortOrder,
+      ),
     [menu.categories],
   )
   const visibleItems = useMemo<readonly Product[]>(() => {
@@ -491,7 +498,8 @@ export default function OrdersPage() {
                   {product.modifierGroups.length > 0 && (
                     <div className="mt-4 flex flex-col gap-3">
                       {product.modifierGroups.map((group) => {
-                        const selected = choices[product.item.id]?.[group.id] ?? []
+                        const selected =
+                          choices[product.item.id]?.[group.id] ?? []
                         return (
                           <div key={group.id}>
                             <div className="flex items-center justify-between gap-2">
@@ -516,10 +524,15 @@ export default function OrdersPage() {
                                   aria-pressed={selected.includes(option.id)}
                                   disabled={!option.available}
                                   onClick={() =>
-                                    toggleChoice(product.item.id, group, option.id)
+                                    toggleChoice(
+                                      product.item.id,
+                                      group,
+                                      option.id,
+                                    )
                                   }
                                 >
-                                  {label(option.name)} +{formatMoney(option.priceDelta.minor)}
+                                  {label(option.name)} +
+                                  {formatMoney(option.priceDelta.minor)}
                                 </Button>
                               ))}
                             </div>
