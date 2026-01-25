@@ -75,9 +75,8 @@ export default function MenuPage() {
   const [storageReady, setStorageReady] = useState(false)
   const [category, setCategory] = useState('all')
   const [query, setQuery] = useState('')
-  const [categoryDraft, setCategoryDraft] = useState<CategoryDraft>(
-    emptyCategoryDraft(),
-  )
+  const [categoryDraft, setCategoryDraft] =
+    useState<CategoryDraft>(emptyCategoryDraft())
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(
     null,
   )
@@ -122,7 +121,10 @@ export default function MenuPage() {
     locale === 'th' && text.th ? text.th : text.en
 
   const sortedCategories = useMemo(
-    () => [...menu.categories].sort((left, right) => left.sortOrder - right.sortOrder),
+    () =>
+      [...menu.categories].sort(
+        (left, right) => left.sortOrder - right.sortOrder,
+      ),
     [menu.categories],
   )
 
@@ -647,7 +649,8 @@ export default function MenuPage() {
                           <div>
                             <p className="font-semibold">{label(item.name)}</p>
                             <p className="mt-1 text-xs text-muted-foreground">
-                              {item.sku} · {categoryName ? label(categoryName) : ''}
+                              {item.sku} ·{' '}
+                              {categoryName ? label(categoryName) : ''}
                             </p>
                           </div>
                           <Badge variant={available ? 'success' : 'warning'}>
@@ -678,7 +681,8 @@ export default function MenuPage() {
                               {formatMoney(item.price.minor)}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              {item.modifierGroupIds.length} {t('modifierGroups')}
+                              {item.modifierGroupIds.length}{' '}
+                              {t('modifierGroups')}
                             </p>
                           </div>
                           <div className="flex gap-2">
@@ -703,7 +707,9 @@ export default function MenuPage() {
                               ) : (
                                 <Check aria-hidden="true" />
                               )}
-                              {available ? t('markUnavailable') : t('markAvailable')}
+                              {available
+                                ? t('markUnavailable')
+                                : t('markAvailable')}
                             </Button>
                             <Button
                               size="sm"
