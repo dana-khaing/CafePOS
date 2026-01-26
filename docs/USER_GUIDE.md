@@ -122,12 +122,38 @@ If you add a new item, attach the correct modifier groups before saving.
 
 ## How inventory management works
 
-The Inventory page is for stock corrections and manual stock count changes.
+The Inventory page is for stock-item master data and manual stock corrections.
+
+Use it to:
+
+- add new stock items;
+- edit item names, units, quantities, and reorder points;
+- adjust stock up or down after delivery, waste, or count corrections.
+
+### Add or edit a stock item
+
+1. Open Inventory.
+2. In the stock item editor, enter:
+   - item id
+   - item name
+   - unit
+   - starting quantity
+   - reorder point
+   - manager PIN
+3. Click Save item.
+
+Examples:
+
+- item id: `sugar`
+- name: `White sugar`
+- unit: `g`
+- starting quantity: `2500`
+- reorder point: `500`
 
 ### Adjust stock
 
-1. Open Inventory.
-2. Select the stock item.
+1. Find the stock item card.
+2. Click Adjust stock.
 3. Enter the quantity change.
    - Use a negative number to reduce stock.
    - Use a positive number to add stock.
