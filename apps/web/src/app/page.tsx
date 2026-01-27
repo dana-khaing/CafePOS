@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowRight,
   LayoutGrid,
@@ -20,6 +21,19 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { dateInTimezone } from '@/lib/business-time'
+import {
+  HISTORY_STORAGE_KEY,
+  emptyHistory,
+  parseSaleHistory,
+  type SaleHistory,
+} from '@/lib/history-storage'
+import {
+  SETTINGS_STORAGE_KEY,
+  defaultSettings,
+  parseSettings,
+} from '@/lib/settings-storage'
+import { buildWeeklySalesComparison } from '@/lib/sales-summary'
 
 const quickActions = [
   {
@@ -61,15 +75,62 @@ const activity = [
 ]
 
 export default function HomePage() {
-  const { date, money, t } = useLocale()
-  const dashboardDate = new Date(2026, 6, 21)
+  const { date, locale, money, t } = useLocale()
+  const [history, setHistory] = useState<SaleHistory>(emptyHistory())
+  const [settings, setSettings] = useState(defaultSettings())
+  const [businessDate, setBusinessDate] = useState(() =>
+    dateInTimezone(new Date(), defaultSettings().timezone),
+  )
+
+  useEffect(() => {
+    const load = () => {
+      setHistory(parseSaleHistory(localStorage.getItem(HISTORY_STORAGE_KEY)))
+      try {
+        const next = parseSettings(localStorage.getItem(SETTINGS_STORAGE_KEY))
+        setSettings(next)
+        setBusinessDate(dateInTimezone(new Date(), next.timezone))
+      } catch {
+        // Keep validated defaults if settings storage is corrupt.
+      }
+    }
+    load()
+    window.addEventListener('storage', load)
+    return () => window.removeEventListener('storage', load)
+  }, [])
+
+  const sales = useMemo(
+    () => buildWeeklySalesComparison(history, businessDate, settings.timezone),
+    [businessDate, history, settings.timezone],
+  )
+  const comparisonLabel = useMemo(() => {
+    if (sales.percentChange === null) return t('noComparisonData')
+    const percentage = new Intl.NumberFormat(locale, {
+      style: 'percent',
+      signDisplay: 'always',
+      maximumFractionDigits: 1,
+    }).format(sales.percentChange / 100)
+    const weekday = new Intl.DateTimeFormat(locale, {
+      weekday: 'long',
+    }).format(new Date(`${sales.comparisonDate}T12:00:00Z`))
+    return locale === 'th'
+      ? `${percentage} จากวัน${weekday}ที่แล้ว`
+      : `${percentage} vs last ${weekday}`
+  }, [locale, sales.comparisonDate, sales.percentChange, t])
+  const comparisonVariant =
+    sales.percentChange === null
+      ? 'outline'
+      : sales.percentChange > 0
+        ? 'success'
+        : sales.percentChange < 0
+          ? 'warning'
+          : 'outline'
   return (
     <AppShell>
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-4 md:p-6 lg:p-8">
         <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
             <p className="text-sm font-medium text-muted-foreground">
-              {date(dashboardDate)}
+              {date(new Date(`${businessDate}T12:00:00Z`))}
             </p>
             <h1 className="mt-1 text-3xl font-semibold tracking-tight">
               {t('greeting')}
@@ -114,20 +175,22 @@ export default function HomePage() {
             <CardHeader className="pb-2">
               <CardDescription>{t('netSales')}</CardDescription>
               <CardTitle className="font-mono text-2xl">
-                {money(12840)}
+                {money(sales.current.netMinor / 100)}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Badge variant="success">{t('salesComparison')}</Badge>
+              <Badge variant={comparisonVariant}>{comparisonLabel}</Badge>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
               <CardDescription>{t('orders')}</CardDescription>
-              <CardTitle className="font-mono text-2xl">48</CardTitle>
+              <CardTitle className="font-mono text-2xl">
+                {sales.current.orderCount}
+              </CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
-              {t('average')} {money(267.5)}
+              {t('average')} {money(sales.current.averageOrderMinor / 100)}
             </CardContent>
           </Card>
           <Card>
