@@ -28,6 +28,17 @@ When the app opens, confirm:
 
 If the menu looks wrong, open the Menu page and refresh the catalog data.
 
+## Understanding the hub status badge
+
+The badge in the header tells you whether the branch hub is ready.
+
+- Checking hub: the app is verifying the local branch service.
+- Hub connected: the app can reach the branch hub normally.
+- Working offline: the hub is unreachable or not reporting a ready status.
+
+If you see a retry button next to the badge, you can use it to force a fresh
+check without reloading the whole page.
+
 ## Taking an order
 
 1. Open Orders.
