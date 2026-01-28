@@ -7,6 +7,7 @@ import {
   ReceiptText,
   Utensils,
 } from 'lucide-react'
+import Link from 'next/link'
 
 import { AppShell } from '@/components/app-shell'
 import { useLocale } from '@/components/locale-provider'
@@ -75,9 +76,11 @@ export default function HomePage() {
             </h1>
             <p className="mt-2 text-muted-foreground">{t('branch')}</p>
           </div>
-          <Button size="lg" disabled title={t('orderingComingSoon')}>
-            <Plus aria-hidden="true" />
-            {t('newOrder')}
+          <Button size="lg" asChild>
+            <Link href="/orders">
+              <Plus aria-hidden="true" />
+              {t('newOrder')}
+            </Link>
           </Button>
         </section>
 
