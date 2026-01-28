@@ -1,15 +1,33 @@
 import { describe, expect, it } from 'vitest'
-import { createBackup, restoreBackup, validateBackup } from './backup'
+import {
+  createBackup,
+  restoreBackup,
+  validateBackup,
+  BACKUP_KEYS,
+} from './backup'
 import {
   HISTORY_STORAGE_KEY,
   emptyHistory,
   serializeSaleHistory,
 } from './history-storage'
 import {
+  INVENTORY_STORAGE_KEY,
+  PENDING_INVENTORY_RECEIPTS_KEY,
+} from './inventory-storage'
+import { MENU_STORAGE_KEY } from './menu-storage'
+import { ORDER_STORAGE_KEY } from './order-storage'
+import {
+  PAYMENT_STORAGE_KEY,
+  PENDING_PAYMENT_EVENT_KEY,
+} from './payment-storage'
+import { RECEIPT_STORAGE_KEY } from './receipt-storage'
+import { SHIFT_STORAGE_KEY } from './shift-storage'
+import {
   SETTINGS_STORAGE_KEY,
   defaultSettings,
   serializeSettings,
 } from './settings-storage'
+import { PENDING_ORDER_SUBMISSION_KEY } from './order-submission'
 
 const storage = (values = new Map<string, string>()) =>
   ({
@@ -26,6 +44,24 @@ const locks = {
 } as unknown as LockManager
 
 describe('backup', () => {
+  it('includes the critical storage keys used by branch operations', () => {
+    expect(BACKUP_KEYS).toEqual(
+      expect.arrayContaining([
+        HISTORY_STORAGE_KEY,
+        INVENTORY_STORAGE_KEY,
+        PENDING_INVENTORY_RECEIPTS_KEY,
+        MENU_STORAGE_KEY,
+        SHIFT_STORAGE_KEY,
+        ORDER_STORAGE_KEY,
+        PENDING_ORDER_SUBMISSION_KEY,
+        PAYMENT_STORAGE_KEY,
+        PENDING_PAYMENT_EVENT_KEY,
+        RECEIPT_STORAGE_KEY,
+        SETTINGS_STORAGE_KEY,
+      ]),
+    )
+  })
+
   it('creates, validates, and restores a checksummed backup', async () => {
     const source = storage(
       new Map([[HISTORY_STORAGE_KEY, serializeSaleHistory(emptyHistory())]]),
