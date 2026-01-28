@@ -1,7 +1,7 @@
 'use client'
 
 import { Minus, Plus, Search, ShoppingBag, Trash2 } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import {
   addDraftOrderLine,
@@ -63,8 +63,15 @@ import {
 import { recordCashSale, updateStoredShiftLedger } from '@/lib/shift-storage'
 import {
   consumePendingInventory,
+  initialInventory,
+  INVENTORY_STORAGE_KEY,
+  parseInventory,
   stageInventoryReceipt,
 } from '@/lib/inventory-storage'
+import {
+  buildMenuStockState,
+  type MenuItemStockState,
+} from '@/lib/stock-availability'
 import { withCriticalStorageLock } from '@/lib/storage-lock'
 
 const vat = {
@@ -77,6 +84,7 @@ type Product = Readonly<{
   item: MenuItem
   categoryName: Readonly<{ en: string; th?: string }>
   modifierGroups: readonly ModifierGroup[]
+  stockState: MenuItemStockState
 }>
 
 const emptyOrder = (): DraftOrder => ({
@@ -93,6 +101,7 @@ export default function OrdersPage() {
   const [order, setOrder] = useState<DraftOrder>(emptyOrder)
   const [storageReady, setStorageReady] = useState(false)
   const [menu, setMenu] = useState<Menu>(defaultMenu())
+  const [inventory, setInventory] = useState(initialInventory())
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('all')
   const [choices, setChoices] = useState<ModifierSelections>({})
@@ -111,6 +120,10 @@ export default function OrdersPage() {
   const modifierGroupById = useMemo(
     () => new Map(menu.modifierGroups.map((entry) => [entry.id, entry])),
     [menu.modifierGroups],
+  )
+  const stockStateByItemId = useMemo(
+    () => buildMenuStockState(menu, inventory),
+    [inventory, menu],
   )
   const sortedCategories = useMemo(
     () =>
@@ -137,11 +150,37 @@ export default function OrdersPage() {
         modifierGroups: item.modifierGroupIds
           .map((groupId) => modifierGroupById.get(groupId))
           .filter((group): group is ModifierGroup => Boolean(group)),
+        stockState:
+          stockStateByItemId[item.id] ??
+          ({
+            manualAvailable: item.available,
+            inStock: true,
+            sellable: item.available,
+            lowStock: false,
+            soldOut: false,
+            lowStockIngredients: [],
+            soldOutIngredients: [],
+          } as const),
       }))
-  }, [category, categoryById, locale, menu.items, modifierGroupById, query])
+  }, [
+    category,
+    categoryById,
+    locale,
+    menu.items,
+    modifierGroupById,
+    query,
+    stockStateByItemId,
+  ])
   const label = (text: { en: string; th?: string }) =>
     locale === 'th' && text.th ? text.th : text.en
   const total = calculateDraftOrderTotal(order)
+  const refreshInventory = useCallback(() => {
+    try {
+      setInventory(parseInventory(localStorage.getItem(INVENTORY_STORAGE_KEY)))
+    } catch {
+      setInventory(initialInventory())
+    }
+  }, [])
 
   useEffect(() => {
     const fallback = emptyOrder()
@@ -183,6 +222,18 @@ export default function OrdersPage() {
     window.addEventListener('storage', loadMenu)
     return () => window.removeEventListener('storage', loadMenu)
   }, [])
+
+  useEffect(() => {
+    refreshInventory()
+    window.addEventListener('storage', refreshInventory)
+    return () => window.removeEventListener('storage', refreshInventory)
+  }, [refreshInventory])
+
+  useEffect(() => {
+    refreshInventory()
+    window.addEventListener('storage', refreshInventory)
+    return () => window.removeEventListener('storage', refreshInventory)
+  }, [refreshInventory])
 
   useEffect(() => {
     if (!storageReady) return
@@ -245,6 +296,7 @@ export default function OrdersPage() {
     })
 
   const add = (product: Product) => {
+    if (!product.stockState.sellable) return
     const modifiers = buildModifiers(product.item)
     const signature = orderLineModifierSignature(modifiers)
     const existing = order.lines.find(
@@ -348,6 +400,7 @@ export default function OrdersPage() {
                 ),
               )
             })
+            refreshInventory()
             setReceipt(completedReceipt)
             setPayment(null)
             setOrder(emptyOrder())
@@ -476,80 +529,92 @@ export default function OrdersPage() {
               ))}
             </div>
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {visibleItems.map((product) => (
-                <article
-                  key={product.item.id}
-                  className="flex h-full flex-col rounded-xl border bg-card p-5 text-start shadow-sm"
-                >
-                  <Badge variant="secondary">
-                    {label(product.categoryName)}
-                  </Badge>
-                  <h2 className="mt-8 text-lg font-semibold">
-                    {label(product.item.name)}
-                  </h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {formatMoney(product.item.price.minor)}
-                  </p>
-                  {!product.item.available && (
-                    <Badge className="mt-3 w-fit" variant="warning">
-                      Unavailable
-                    </Badge>
-                  )}
-                  {product.modifierGroups.length > 0 && (
-                    <div className="mt-4 flex flex-col gap-3">
-                      {product.modifierGroups.map((group) => {
-                        const selected =
-                          choices[product.item.id]?.[group.id] ?? []
-                        return (
-                          <div key={group.id}>
-                            <div className="flex items-center justify-between gap-2">
-                              <p className="text-sm font-medium">
-                                {label(group.name)}
-                              </p>
-                              <span className="text-xs text-muted-foreground">
-                                {group.minimum > 0 ? 'Required' : 'Optional'}
-                              </span>
-                            </div>
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              {group.options.map((option) => (
-                                <Button
-                                  key={option.id}
-                                  type="button"
-                                  size="sm"
-                                  variant={
-                                    selected.includes(option.id)
-                                      ? 'secondary'
-                                      : 'outline'
-                                  }
-                                  aria-pressed={selected.includes(option.id)}
-                                  disabled={!option.available}
-                                  onClick={() =>
-                                    toggleChoice(
-                                      product.item.id,
-                                      group,
-                                      option.id,
-                                    )
-                                  }
-                                >
-                                  {label(option.name)} +
-                                  {formatMoney(option.priceDelta.minor)}
-                                </Button>
-                              ))}
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                  <Button
-                    className="mt-auto w-full"
-                    onClick={() => add(product)}
-                    disabled={!product.item.available}
+              {visibleItems.map((product) => {
+                const stockState = product.stockState
+                return (
+                  <article
+                    key={product.item.id}
+                    className="flex h-full flex-col rounded-xl border bg-card p-5 text-start shadow-sm"
                   >
-                    {product.item.available ? t('addToOrder') : 'Unavailable'}
-                  </Button>
-                </article>
-              ))}
+                    <Badge variant="secondary">
+                      {label(product.categoryName)}
+                    </Badge>
+                    <h2 className="mt-8 text-lg font-semibold">
+                      {label(product.item.name)}
+                    </h2>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {formatMoney(product.item.price.minor)}
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {!stockState.manualAvailable && (
+                        <Badge variant="warning">{t('unavailable')}</Badge>
+                      )}
+                      {stockState.soldOut ? (
+                        <Badge variant="warning">{t('outOfStock')}</Badge>
+                      ) : stockState.lowStock ? (
+                        <Badge variant="warning">{t('lowStock')}</Badge>
+                      ) : null}
+                    </div>
+                    {product.modifierGroups.length > 0 && (
+                      <div className="mt-4 flex flex-col gap-3">
+                        {product.modifierGroups.map((group) => {
+                          const selected =
+                            choices[product.item.id]?.[group.id] ?? []
+                          return (
+                            <div key={group.id}>
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="text-sm font-medium">
+                                  {label(group.name)}
+                                </p>
+                                <span className="text-xs text-muted-foreground">
+                                  {group.minimum > 0 ? 'Required' : 'Optional'}
+                                </span>
+                              </div>
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                {group.options.map((option) => (
+                                  <Button
+                                    key={option.id}
+                                    type="button"
+                                    size="sm"
+                                    variant={
+                                      selected.includes(option.id)
+                                        ? 'secondary'
+                                        : 'outline'
+                                    }
+                                    aria-pressed={selected.includes(option.id)}
+                                    disabled={!option.available}
+                                    onClick={() =>
+                                      toggleChoice(
+                                        product.item.id,
+                                        group,
+                                        option.id,
+                                      )
+                                    }
+                                  >
+                                    {label(option.name)} +
+                                    {formatMoney(option.priceDelta.minor)}
+                                  </Button>
+                                ))}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                    <Button
+                      className="mt-auto w-full"
+                      onClick={() => add(product)}
+                      disabled={!stockState.sellable}
+                    >
+                      {stockState.soldOut
+                        ? t('outOfStock')
+                        : !stockState.manualAvailable
+                          ? t('unavailable')
+                          : t('addToOrder')}
+                    </Button>
+                  </article>
+                )
+              })}
             </div>
           </section>
 
