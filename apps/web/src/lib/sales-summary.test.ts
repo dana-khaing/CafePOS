@@ -8,7 +8,10 @@ import {
 import { createReceipt } from '@cafepos/domain'
 
 import { emptyHistory, appendReceipt } from './history-storage'
-import { buildWeeklySalesComparison } from './sales-summary'
+import {
+  buildDailySalesSummaries,
+  buildWeeklySalesComparison,
+} from './sales-summary'
 
 const order = {
   id: 'order',
@@ -81,5 +84,24 @@ describe('weekly sales comparison', () => {
     )
     expect(summary.previous.orderCount).toBe(0)
     expect(summary.percentChange).toBeNull()
+  })
+
+  it('builds a two-week daily sales series ending on the chosen date', () => {
+    const current = paidReceipt('current', '2026-01-27T10:00:00.000Z', 15000)
+    const previous = paidReceipt('previous', '2026-01-20T10:00:00.000Z', 14000)
+    const history = appendReceipt(
+      appendReceipt(emptyHistory(), current),
+      previous,
+    )
+    const series = buildDailySalesSummaries(
+      history,
+      '2026-01-27',
+      'Asia/Bangkok',
+    )
+    expect(series).toHaveLength(14)
+    expect(series.at(-1)?.date).toBe('2026-01-27')
+    expect(series.at(-1)?.report.orderCount).toBe(1)
+    expect(series.at(-8)?.date).toBe('2026-01-20')
+    expect(series.at(-8)?.report.orderCount).toBe(1)
   })
 })
