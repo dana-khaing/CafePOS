@@ -1,7 +1,7 @@
 'use client'
 
 import { Check, PencilLine, Search, Trash2, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { money, type Menu } from '@cafepos/domain'
 
@@ -24,6 +24,12 @@ import {
   parseStoredMenu,
   serializeMenu,
 } from '@/lib/menu-storage'
+import {
+  initialInventory,
+  INVENTORY_STORAGE_KEY,
+  parseInventory,
+} from '@/lib/inventory-storage'
+import { buildMenuStockState } from '@/lib/stock-availability'
 import { withCriticalStorageLock } from '@/lib/storage-lock'
 
 type CategoryDraft = Readonly<{
@@ -72,6 +78,7 @@ const emptyItemDraft = (categoryId = ''): ItemDraft => ({
 export default function MenuPage() {
   const { locale, money: formatMoney, t } = useLocale()
   const [menu, setMenu] = useState<Menu>(defaultMenu())
+  const [inventory, setInventory] = useState(initialInventory())
   const [storageReady, setStorageReady] = useState(false)
   const [category, setCategory] = useState('all')
   const [query, setQuery] = useState('')
@@ -105,6 +112,22 @@ export default function MenuPage() {
     setStorageReady(true)
   }, [])
 
+  const refreshInventory = useCallback(() => {
+    try {
+      setInventory(
+        parseInventory(window.localStorage.getItem(INVENTORY_STORAGE_KEY)),
+      )
+    } catch {
+      setInventory(initialInventory())
+    }
+  }, [])
+
+  useEffect(() => {
+    refreshInventory()
+    window.addEventListener('storage', refreshInventory)
+    return () => window.removeEventListener('storage', refreshInventory)
+  }, [refreshInventory])
+
   useEffect(() => {
     if (!storageReady) return
     void withCriticalStorageLock(() =>
@@ -131,6 +154,10 @@ export default function MenuPage() {
   const categoryNames = useMemo(
     () => new Map(sortedCategories.map((entry) => [entry.id, entry.name])),
     [sortedCategories],
+  )
+  const stockStateByItemId = useMemo(
+    () => buildMenuStockState(menu, inventory),
+    [inventory, menu],
   )
 
   const filteredItems = useMemo(() => {
@@ -637,12 +664,22 @@ export default function MenuPage() {
             {filteredItems.length ? (
               <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {filteredItems.map((item) => {
-                  const available = item.available
+                  const stockState = stockStateByItemId[item.id]
                   const categoryName = categoryNames.get(item.categoryId)
+                  const overallAvailable =
+                    stockState?.manualAvailable && !stockState.soldOut
+                  const stockBadge = stockState?.lowStock ? t('lowStock') : null
+                  const stockDetails = stockState?.soldOut
+                    ? stockState.soldOutIngredients.map((entry) => entry.name)
+                    : stockState?.lowStock
+                      ? stockState.lowStockIngredients.map(
+                          (entry) => entry.name,
+                        )
+                      : []
                   return (
                     <Card
                       key={item.id}
-                      className={!available ? 'opacity-70' : undefined}
+                      className={!overallAvailable ? 'opacity-70' : undefined}
                     >
                       <CardContent className="flex h-full flex-col gap-4 p-5">
                         <div className="flex items-start justify-between gap-4">
@@ -653,10 +690,26 @@ export default function MenuPage() {
                               {categoryName ? label(categoryName) : ''}
                             </p>
                           </div>
-                          <Badge variant={available ? 'success' : 'warning'}>
-                            {available ? t('available') : t('unavailable')}
-                          </Badge>
+                          <div className="flex flex-col items-end gap-2">
+                            <Badge
+                              variant={overallAvailable ? 'success' : 'warning'}
+                            >
+                              {stockState?.soldOut
+                                ? t('outOfStock')
+                                : !stockState?.manualAvailable
+                                  ? t('unavailable')
+                                  : t('available')}
+                            </Badge>
+                            {stockBadge && (
+                              <Badge variant="warning">{stockBadge}</Badge>
+                            )}
+                          </div>
                         </div>
+                        {stockDetails.length > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            {stockBadge}: {stockDetails.join(', ')}
+                          </p>
+                        )}
 
                         <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                           {item.modifierGroupIds.map((groupId) => {
@@ -696,18 +749,21 @@ export default function MenuPage() {
                             </Button>
                             <Button
                               size="sm"
-                              variant={available ? 'outline' : 'default'}
+                              variant={overallAvailable ? 'outline' : 'default'}
                               onClick={() =>
-                                toggleItemAvailability(item.id, !available)
+                                toggleItemAvailability(
+                                  item.id,
+                                  !stockState?.manualAvailable,
+                                )
                               }
-                              aria-label={`${available ? t('markUnavailable') : t('markAvailable')}: ${label(item.name)}`}
+                              aria-label={`${stockState?.manualAvailable ? t('markUnavailable') : t('markAvailable')}: ${label(item.name)}`}
                             >
-                              {available ? (
+                              {stockState?.manualAvailable ? (
                                 <X aria-hidden="true" />
                               ) : (
                                 <Check aria-hidden="true" />
                               )}
-                              {available
+                              {stockState?.manualAvailable
                                 ? t('markUnavailable')
                                 : t('markAvailable')}
                             </Button>

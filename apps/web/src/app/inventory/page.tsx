@@ -1,7 +1,7 @@
 'use client'
 
 import { AlertTriangle, PackageOpen, PencilLine } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { adjustStock, type Inventory, type StockItem } from '@cafepos/domain'
 
@@ -12,12 +12,18 @@ import { Card, CardContent } from '@/components/ui/card'
 import { verifyManagerPin } from '@/lib/manager-client'
 import { saveStockItem } from '@/lib/inventory-admin'
 import {
+  defaultMenu,
+  MENU_STORAGE_KEY,
+  parseStoredMenu,
+} from '@/lib/menu-storage'
+import {
   INVENTORY_STORAGE_KEY,
   consumePendingInventory,
   initialInventory,
   parseInventory,
   updateStoredInventory,
 } from '@/lib/inventory-storage'
+import { getMenuItemsAtRisk } from '@/lib/stock-availability'
 
 type StockDraft = Readonly<{
   id: string
@@ -51,6 +57,7 @@ const parseNonNegativeInteger = (value: string, field: string) => {
 export default function InventoryPage() {
   const { t } = useLocale()
   const [inventory, setInventory] = useState<Inventory>(initialInventory)
+  const [menu, setMenu] = useState(defaultMenu())
   const [selected, setSelected] = useState<StockItem | null>(null)
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const [draft, setDraft] = useState<StockDraft>(emptyDraft)
@@ -64,12 +71,29 @@ export default function InventoryPage() {
   const dialogRef = useRef<HTMLDivElement>(null)
   const returnFocus = useRef<HTMLElement | null>(null)
 
+  const refreshInventory = useCallback(() => {
+    try {
+      setInventory(parseInventory(localStorage.getItem(INVENTORY_STORAGE_KEY)))
+    } catch {
+      setInventory(initialInventory())
+    }
+  }, [])
+
+  const refreshMenu = useCallback(() => {
+    try {
+      setMenu(
+        parseStoredMenu(localStorage.getItem(MENU_STORAGE_KEY), defaultMenu()),
+      )
+    } catch {
+      setMenu(defaultMenu())
+    }
+  }, [])
+
   useEffect(() => {
     const load = () => {
       try {
-        setInventory(
-          parseInventory(localStorage.getItem(INVENTORY_STORAGE_KEY)),
-        )
+        refreshInventory()
+        refreshMenu()
         setError(false)
       } catch {
         setError(true)
@@ -81,7 +105,7 @@ export default function InventoryPage() {
       .catch(() => setError(true))
     window.addEventListener('storage', load)
     return () => window.removeEventListener('storage', load)
-  }, [])
+  }, [refreshInventory, refreshMenu])
 
   useEffect(() => {
     if (!selected) return
@@ -197,6 +221,10 @@ export default function InventoryPage() {
       inventory.items.filter((item) => item.quantity <= item.reorderAt).length,
     [inventory.items],
   )
+  const menuItemsAtRisk = useMemo(
+    () => getMenuItemsAtRisk(menu, inventory),
+    [inventory, menu],
+  )
   const sortedItems = useMemo(
     () =>
       [...inventory.items].sort((left, right) =>
@@ -245,6 +273,9 @@ export default function InventoryPage() {
               <p className="font-semibold">{t('lowStock')}</p>
               <p className="text-sm text-muted-foreground">
                 {low} {t('items')}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {menuItemsAtRisk.length} {t('menuItemsAtRisk')}
               </p>
             </div>
           </CardContent>
