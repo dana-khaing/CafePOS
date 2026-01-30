@@ -19,7 +19,11 @@ export function buildWeeklySalesComparison(
   const currentRange = businessDayRange(date, timezone)
   const comparisonDate = shiftBusinessDate(date, -7)
   const previousRange = businessDayRange(comparisonDate, timezone)
-  const current = buildSalesReport(history.receipts, history.refunds, currentRange)
+  const current = buildSalesReport(
+    history.receipts,
+    history.refunds,
+    currentRange,
+  )
   const previous = buildSalesReport(
     history.receipts,
     history.refunds,
