@@ -11,6 +11,11 @@ export type WeeklySalesComparison = Readonly<{
   percentChange: number | null
 }>
 
+export type DailySalesSummary = Readonly<{
+  date: string
+  report: SalesReport
+}>
+
 export function buildWeeklySalesComparison(
   history: SaleHistory,
   date: string,
@@ -39,4 +44,22 @@ export function buildWeeklySalesComparison(
     differenceMinor,
     percentChange,
   } satisfies WeeklySalesComparison
+}
+
+export function buildDailySalesSummaries(
+  history: SaleHistory,
+  date: string,
+  timezone: string,
+  days = 14,
+) {
+  if (!Number.isInteger(days) || days <= 0)
+    throw new TypeError('Daily sales summary length is invalid')
+  return Array.from({ length: days }, (_, index) => {
+    const currentDate = shiftBusinessDate(date, index - (days - 1))
+    const range = businessDayRange(currentDate, timezone)
+    return {
+      date: currentDate,
+      report: buildSalesReport(history.receipts, history.refunds, range),
+    } satisfies DailySalesSummary
+  })
 }
