@@ -280,9 +280,7 @@ export default function ShiftsPage() {
           <CardContent className="p-6">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
-                <h2 className="text-xl font-semibold">
-                  {t('archivedShifts')}
-                </h2>
+                <h2 className="text-xl font-semibold">{t('archivedShifts')}</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {t('archivedShiftsDescription')}
                 </p>
@@ -325,7 +323,9 @@ export default function ShiftsPage() {
                             {t('expectedCash')}
                           </p>
                           <p className="mt-1 font-semibold">
-                            {formatMoney((shift.expectedCash?.minor ?? 0) / 100)}
+                            {formatMoney(
+                              (shift.expectedCash?.minor ?? 0) / 100,
+                            )}
                           </p>
                         </div>
                         <div>
