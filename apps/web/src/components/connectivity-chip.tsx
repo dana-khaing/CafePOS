@@ -10,11 +10,13 @@ import { type HubProbeResult, probeHub } from '@/lib/hub-status'
 
 const hubUrl = process.env.NEXT_PUBLIC_BRANCH_HUB_URL ?? 'http://127.0.0.1:4310'
 
-function formatTime(value: string) {
-  return new Intl.DateTimeFormat(undefined, {
+export function formatHubCheckedAt(value: string) {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'UTC',
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
+    hourCycle: 'h23',
   }).format(new Date(value))
 }
 
@@ -33,7 +35,7 @@ export function ConnectivityChip() {
   const { t } = useLocale()
   const [status, setStatus] = useState<HubProbeResult>({
     connection: 'checking',
-    checkedAt: new Date().toISOString(),
+    checkedAt: '',
   })
   const activeRef = useRef(true)
   const inFlightRef = useRef(false)
@@ -75,7 +77,9 @@ export function ConnectivityChip() {
     status.uptimeSeconds != null
       ? `Uptime ${formatUptime(status.uptimeSeconds)}`
       : null,
-    status.checkedAt ? `Checked ${formatTime(status.checkedAt)}` : null,
+    status.connection !== 'checking' && status.checkedAt
+      ? `Checked ${formatHubCheckedAt(status.checkedAt)}`
+      : null,
     status.error ? `Last error: ${status.error}` : null,
   ]
     .filter(Boolean)
