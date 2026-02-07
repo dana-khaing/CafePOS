@@ -23,6 +23,7 @@ import {
 
 import { AppShell } from '@/components/app-shell'
 import { useLocale } from '@/components/locale-provider'
+import { OrderCustomizerDialog } from '@/components/order-customizer-dialog'
 import { PaymentDialog } from '@/components/payment-dialog'
 import { ReceiptDialog } from '@/components/receipt-dialog'
 import { Badge } from '@/components/ui/badge'
@@ -65,6 +66,11 @@ import {
   consumePendingInventory,
   stageInventoryReceipt,
 } from '@/lib/inventory-storage'
+import {
+  buildOrderLineModifiers,
+  isItemCustomizationComplete,
+  type ModifierSelections as GroupModifierSelections,
+} from '@/lib/order-customizer'
 import { withCriticalStorageLock } from '@/lib/storage-lock'
 
 const vat = {
@@ -86,8 +92,6 @@ const emptyOrder = (): DraftOrder => ({
   lines: [],
 })
 
-type ModifierSelections = Record<string, Record<string, readonly string[]>>
-
 export default function OrdersPage() {
   const { locale, money: formatMoney, t } = useLocale()
   const [order, setOrder] = useState<DraftOrder>(emptyOrder)
@@ -95,7 +99,12 @@ export default function OrdersPage() {
   const [menu, setMenu] = useState<Menu>(defaultMenu())
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('all')
-  const [choices, setChoices] = useState<ModifierSelections>({})
+  const [choices, setChoices] = useState<
+    Record<string, GroupModifierSelections>
+  >({})
+  const [customizingProduct, setCustomizingProduct] = useState<Product | null>(
+    null,
+  )
   const [submission, setSubmission] = useState<
     'idle' | 'sending' | 'sent' | 'error'
   >('idle')
@@ -207,7 +216,9 @@ export default function OrdersPage() {
             : [optionId]
           : currentGroup.includes(optionId)
             ? currentGroup.filter((entry) => entry !== optionId)
-            : [...currentGroup, optionId]
+            : currentGroup.length >= group.maximum
+              ? currentGroup
+              : [...currentGroup, optionId]
       return {
         ...current,
         [itemId]: {
@@ -218,34 +229,13 @@ export default function OrdersPage() {
     })
   }
 
-  const buildModifiers = (item: MenuItem) =>
-    item.modifierGroupIds.flatMap((groupId) => {
-      const group = modifierGroupById.get(groupId)
-      if (!group) return []
-      const selected = choices[item.id]?.[groupId] ?? []
-      const required = selected.length
-        ? selected
-        : group.minimum > 0
-          ? group.options
-              .filter((option) => option.available)
-              .slice(0, group.minimum)
-              .map((option) => option.id)
-          : []
-      return required.flatMap((optionId) => {
-        const option = group.options.find((entry) => entry.id === optionId)
-        if (!option) return []
-        return [
-          {
-            optionId: option.id,
-            name: label(option.name),
-            priceDelta: option.priceDelta,
-          },
-        ]
-      })
-    })
-
   const add = (product: Product) => {
-    const modifiers = buildModifiers(product.item)
+    const modifiers = buildOrderLineModifiers(
+      product.item,
+      modifierGroupById,
+      choices[product.item.id] ?? {},
+      label,
+    )
     const signature = orderLineModifierSignature(modifiers)
     const existing = order.lines.find(
       (line) =>
@@ -269,6 +259,31 @@ export default function OrdersPage() {
         taxRate: vat,
       }),
     )
+  }
+
+  const beginAdd = (product: Product) => {
+    if (!product.item.available) return
+    if (product.modifierGroups.length === 0) {
+      add(product)
+      return
+    }
+    setCustomizingProduct(product)
+  }
+
+  const confirmCustomization = () => {
+    if (!customizingProduct) return
+    const selections = choices[customizingProduct.item.id] ?? {}
+    if (
+      !isItemCustomizationComplete(
+        customizingProduct.item,
+        modifierGroupById,
+        selections,
+      )
+    ) {
+      return
+    }
+    add(customizingProduct)
+    setCustomizingProduct(null)
   }
 
   const submit = async () => {
@@ -319,6 +334,15 @@ export default function OrdersPage() {
 
   return (
     <AppShell>
+      {customizingProduct && (
+        <OrderCustomizerDialog
+          product={customizingProduct}
+          selections={choices[customizingProduct.item.id] ?? {}}
+          onToggleChoice={toggleChoice}
+          onConfirm={confirmCustomization}
+          onCancel={() => setCustomizingProduct(null)}
+        />
+      )}
       {payment && (
         <PaymentDialog
           initial={payment}
@@ -382,7 +406,10 @@ export default function OrdersPage() {
       )}
       <fieldset
         disabled={
-          submission === 'sending' || submission === 'error' || Boolean(payment)
+          submission === 'sending' ||
+          submission === 'error' ||
+          Boolean(payment) ||
+          Boolean(customizingProduct)
         }
         className="contents"
       >
@@ -495,58 +522,16 @@ export default function OrdersPage() {
                       Unavailable
                     </Badge>
                   )}
-                  {product.modifierGroups.length > 0 && (
-                    <div className="mt-4 flex flex-col gap-3">
-                      {product.modifierGroups.map((group) => {
-                        const selected =
-                          choices[product.item.id]?.[group.id] ?? []
-                        return (
-                          <div key={group.id}>
-                            <div className="flex items-center justify-between gap-2">
-                              <p className="text-sm font-medium">
-                                {label(group.name)}
-                              </p>
-                              <span className="text-xs text-muted-foreground">
-                                {group.minimum > 0 ? 'Required' : 'Optional'}
-                              </span>
-                            </div>
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              {group.options.map((option) => (
-                                <Button
-                                  key={option.id}
-                                  type="button"
-                                  size="sm"
-                                  variant={
-                                    selected.includes(option.id)
-                                      ? 'secondary'
-                                      : 'outline'
-                                  }
-                                  aria-pressed={selected.includes(option.id)}
-                                  disabled={!option.available}
-                                  onClick={() =>
-                                    toggleChoice(
-                                      product.item.id,
-                                      group,
-                                      option.id,
-                                    )
-                                  }
-                                >
-                                  {label(option.name)} +
-                                  {formatMoney(option.priceDelta.minor)}
-                                </Button>
-                              ))}
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
                   <Button
                     className="mt-auto w-full"
-                    onClick={() => add(product)}
+                    onClick={() => beginAdd(product)}
                     disabled={!product.item.available}
                   >
-                    {product.item.available ? t('addToOrder') : 'Unavailable'}
+                    {product.item.available
+                      ? product.modifierGroups.length > 0
+                        ? t('chooseOptions')
+                        : t('addToOrder')
+                      : t('unavailable')}
                   </Button>
                 </article>
               ))}
