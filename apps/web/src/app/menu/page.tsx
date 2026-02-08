@@ -396,6 +396,8 @@ export default function MenuPage() {
                     <button
                       type="button"
                       className="text-muted-foreground hover:text-foreground"
+                      aria-label={`Edit category ${label(entry.name)}`}
+                      title={`Edit category ${label(entry.name)}`}
                       onClick={() => editCategory(entry.id)}
                     >
                       <PencilLine className="size-4" aria-hidden="true" />
@@ -403,6 +405,8 @@ export default function MenuPage() {
                     <button
                       type="button"
                       className="text-muted-foreground hover:text-destructive"
+                      aria-label={`Delete category ${label(entry.name)}`}
+                      title={`Delete category ${label(entry.name)}`}
                       onClick={() => deleteCategory(entry.id)}
                     >
                       <Trash2 className="size-4" aria-hidden="true" />
@@ -714,6 +718,7 @@ export default function MenuPage() {
                             <Button
                               size="sm"
                               variant="outline"
+                              aria-label={`Delete item ${label(item.name)}`}
                               onClick={() => deleteItem(item.id)}
                             >
                               <Trash2 aria-hidden="true" />
