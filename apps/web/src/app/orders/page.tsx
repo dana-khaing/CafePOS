@@ -230,12 +230,6 @@ export default function OrdersPage() {
   }, [refreshInventory])
 
   useEffect(() => {
-    refreshInventory()
-    window.addEventListener('storage', refreshInventory)
-    return () => window.removeEventListener('storage', refreshInventory)
-  }, [refreshInventory])
-
-  useEffect(() => {
     if (!storageReady) return
     void withCriticalStorageLock(() =>
       localStorage.setItem(ORDER_STORAGE_KEY, serializeOrder(order)),
@@ -567,7 +561,9 @@ export default function OrdersPage() {
                                   {label(group.name)}
                                 </p>
                                 <span className="text-xs text-muted-foreground">
-                                  {group.minimum > 0 ? 'Required' : 'Optional'}
+                                  {group.minimum > 0
+                                    ? t('required')
+                                    : t('optional')}
                                 </span>
                               </div>
                               <div className="mt-2 flex flex-wrap gap-2">

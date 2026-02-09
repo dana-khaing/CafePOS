@@ -99,7 +99,7 @@ export default function MenuPage() {
       setMenu(defaultMenu())
       setNotice({
         kind: 'error',
-        message: 'Menu data was reset to the default catalog.',
+        message: t('menuDataReset'),
       })
     }
     setStorageReady(true)
@@ -112,10 +112,10 @@ export default function MenuPage() {
     ).catch(() => {
       setNotice({
         kind: 'error',
-        message: 'Menu changes could not be saved locally.',
+        message: t('menuChangesCouldNotBeSaved'),
       })
     })
-  }, [menu, storageReady])
+  }, [menu, storageReady, t])
 
   const label = (text: { en: string; th?: string }) =>
     locale === 'th' && text.th ? text.th : text.en
@@ -172,16 +172,16 @@ export default function MenuPage() {
           en: categoryDraft.en.trim(),
           th: categoryDraft.th.trim() || undefined,
         },
-        sortOrder: parseMinorUnits(categoryDraft.sortOrder, 'Sort order'),
+        sortOrder: parseMinorUnits(categoryDraft.sortOrder, t('sortOrder')),
       })
       setMenu(next)
       clearCategoryDraft()
-      setNotice({ kind: 'saved', message: 'Category saved.' })
+      setNotice({ kind: 'saved', message: t('categorySaved') })
     } catch (error) {
       setNotice({
         kind: 'error',
         message:
-          error instanceof Error ? error.message : 'Could not save category.',
+          error instanceof Error ? error.message : t('couldNotSaveCategory'),
       })
     }
   }
@@ -202,12 +202,12 @@ export default function MenuPage() {
     try {
       setMenu((current) => removeMenuCategory(current, id))
       if (editingCategoryId === id) clearCategoryDraft()
-      setNotice({ kind: 'saved', message: 'Category removed.' })
+      setNotice({ kind: 'saved', message: t('categoryRemoved') })
     } catch (error) {
       setNotice({
         kind: 'error',
         message:
-          error instanceof Error ? error.message : 'Could not remove category.',
+          error instanceof Error ? error.message : t('couldNotRemoveCategory'),
       })
     }
   }
@@ -215,7 +215,7 @@ export default function MenuPage() {
   const saveItem = () => {
     try {
       if (!itemDraft.categoryId) {
-        throw new TypeError('Choose a category first.')
+        throw new TypeError(t('chooseCategoryFirst'))
       }
       const next = saveMenuItem(menu, {
         id: itemDraft.id.trim(),
@@ -232,12 +232,12 @@ export default function MenuPage() {
       })
       setMenu(next)
       clearItemDraft()
-      setNotice({ kind: 'saved', message: 'Menu item saved.' })
+      setNotice({ kind: 'saved', message: t('menuItemSaved') })
     } catch (error) {
       setNotice({
         kind: 'error',
         message:
-          error instanceof Error ? error.message : 'Could not save menu item.',
+          error instanceof Error ? error.message : t('couldNotSaveMenuItem'),
       })
     }
   }
@@ -263,12 +263,12 @@ export default function MenuPage() {
     try {
       setMenu((current) => removeMenuItem(current, id))
       if (editingItemId === id) clearItemDraft()
-      setNotice({ kind: 'saved', message: 'Menu item removed.' })
+      setNotice({ kind: 'saved', message: t('menuItemRemoved') })
     } catch (error) {
       setNotice({
         kind: 'error',
         message:
-          error instanceof Error ? error.message : 'Could not remove item.',
+          error instanceof Error ? error.message : t('couldNotRemoveItem'),
       })
     }
   }
@@ -282,7 +282,7 @@ export default function MenuPage() {
         message:
           error instanceof Error
             ? error.message
-            : 'Could not change availability.',
+            : t('couldNotChangeAvailability'),
       })
     }
   }
@@ -315,18 +315,18 @@ export default function MenuPage() {
             <CardContent className="p-5">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-xl font-semibold">Category editor</h2>
+                  <h2 className="text-xl font-semibold">{t('categoryEditor')}</h2>
                   <p className="text-sm text-muted-foreground">
-                    Add or update the groups used by the menu grid.
+                    {t('categoryEditorDescription')}
                   </p>
                 </div>
                 <Button variant="outline" onClick={clearCategoryDraft}>
-                  New category
+                  {t('newCategory')}
                 </Button>
               </div>
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 <label className="block text-sm font-medium">
-                  Category id
+                  {t('categoryId')}
                   <input
                     className="mt-2 h-11 w-full rounded-md border bg-background px-3"
                     value={categoryDraft.id}
@@ -340,7 +340,7 @@ export default function MenuPage() {
                   />
                 </label>
                 <label className="block text-sm font-medium">
-                  Sort order
+                  {t('sortOrder')}
                   <input
                     className="mt-2 h-11 w-full rounded-md border bg-background px-3"
                     inputMode="numeric"
@@ -354,7 +354,7 @@ export default function MenuPage() {
                   />
                 </label>
                 <label className="block text-sm font-medium">
-                  English name
+                  {t('englishName')}
                   <input
                     className="mt-2 h-11 w-full rounded-md border bg-background px-3"
                     value={categoryDraft.en}
@@ -367,7 +367,7 @@ export default function MenuPage() {
                   />
                 </label>
                 <label className="block text-sm font-medium">
-                  Thai name
+                  {t('thaiName')}
                   <input
                     className="mt-2 h-11 w-full rounded-md border bg-background px-3"
                     value={categoryDraft.th}
@@ -381,7 +381,7 @@ export default function MenuPage() {
                 </label>
               </div>
               <Button className="mt-4" onClick={saveCategory}>
-                {editingCategoryId ? 'Update category' : 'Save category'}
+                {editingCategoryId ? t('updateCategory') : t('saveCategory')}
               </Button>
               <div className="mt-6 flex flex-wrap gap-2">
                 {sortedCategories.map((entry) => (
@@ -396,8 +396,8 @@ export default function MenuPage() {
                     <button
                       type="button"
                       className="text-muted-foreground hover:text-foreground"
-                      aria-label={`Edit category ${label(entry.name)}`}
-                      title={`Edit category ${label(entry.name)}`}
+                      aria-label={`${t('edit')} ${t('category')} ${label(entry.name)}`}
+                      title={`${t('edit')} ${t('category')} ${label(entry.name)}`}
                       onClick={() => editCategory(entry.id)}
                     >
                       <PencilLine className="size-4" aria-hidden="true" />
@@ -421,18 +421,18 @@ export default function MenuPage() {
             <CardContent className="p-5">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-xl font-semibold">Menu item editor</h2>
+                  <h2 className="text-xl font-semibold">{t('menuItemEditor')}</h2>
                   <p className="text-sm text-muted-foreground">
-                    Create products and assign existing modifier groups.
+                    {t('menuItemEditorDescription')}
                   </p>
                 </div>
                 <Button variant="outline" onClick={clearItemDraft}>
-                  New item
+                  {t('newItem')}
                 </Button>
               </div>
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 <label className="block text-sm font-medium">
-                  Item id
+                  {t('itemId')}
                   <input
                     className="mt-2 h-11 w-full rounded-md border bg-background px-3"
                     value={itemDraft.id}
@@ -459,7 +459,7 @@ export default function MenuPage() {
                   />
                 </label>
                 <label className="block text-sm font-medium">
-                  Category
+                  {t('category')}
                   <select
                     className="mt-2 h-11 w-full rounded-md border bg-background px-3"
                     value={itemDraft.categoryId}
@@ -469,8 +469,8 @@ export default function MenuPage() {
                         categoryId: event.target.value,
                       }))
                     }
-                  >
-                    <option value="">Choose a category</option>
+                    >
+                    <option value="">{t('chooseCategory')}</option>
                     {sortedCategories.map((entry) => (
                       <option key={entry.id} value={entry.id}>
                         {label(entry.name)}
@@ -479,7 +479,7 @@ export default function MenuPage() {
                   </select>
                 </label>
                 <label className="block text-sm font-medium">
-                  Price
+                  {t('price')}
                   <input
                     className="mt-2 h-11 w-full rounded-md border bg-background px-3"
                     inputMode="numeric"
@@ -493,7 +493,7 @@ export default function MenuPage() {
                   />
                 </label>
                 <label className="block text-sm font-medium">
-                  English name
+                  {t('englishName')}
                   <input
                     className="mt-2 h-11 w-full rounded-md border bg-background px-3"
                     value={itemDraft.en}
@@ -506,7 +506,7 @@ export default function MenuPage() {
                   />
                 </label>
                 <label className="block text-sm font-medium">
-                  Thai name
+                  {t('thaiName')}
                   <input
                     className="mt-2 h-11 w-full rounded-md border bg-background px-3"
                     value={itemDraft.th}
@@ -519,7 +519,7 @@ export default function MenuPage() {
                   />
                 </label>
                 <label className="block text-sm font-medium">
-                  Tax rate id
+                  {t('taxRateId')}
                   <input
                     className="mt-2 h-11 w-full rounded-md border bg-background px-3"
                     value={itemDraft.taxRateId}
@@ -542,12 +542,12 @@ export default function MenuPage() {
                       }))
                     }
                   />
-                  Available for sale
+                  {t('availableForSale')}
                 </label>
               </div>
 
               <div className="mt-5">
-                <p className="text-sm font-medium">Modifier groups</p>
+                <p className="text-sm font-medium">{t('modifierGroups')}</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {menu.modifierGroups.map((group) => (
                     <label
@@ -575,7 +575,7 @@ export default function MenuPage() {
               </div>
 
               <Button className="mt-4" onClick={saveItem}>
-                {editingItemId ? 'Update item' : 'Save item'}
+                {editingItemId ? t('updateItem') : t('saveItem')}
               </Button>
             </CardContent>
           </Card>
@@ -583,12 +583,12 @@ export default function MenuPage() {
 
         <Card>
           <CardContent className="p-5">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <h2 className="text-xl font-semibold">Catalog preview</h2>
-                <p className="text-sm text-muted-foreground">
-                  Current menu items and modifier groups loaded by the order
-                  screen.
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold">{t('catalogPreview')}</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Current menu items and modifier groups loaded by the order
+                    screen.
                 </p>
               </div>
               <label className="relative block w-full lg:max-w-sm">
@@ -690,14 +690,14 @@ export default function MenuPage() {
                             </p>
                           </div>
                           <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => editItem(item.id)}
-                            >
-                              <PencilLine aria-hidden="true" />
-                              Edit
-                            </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => editItem(item.id)}
+                          >
+                            <PencilLine aria-hidden="true" />
+                            {t('edit')}
+                          </Button>
                             <Button
                               size="sm"
                               variant={available ? 'outline' : 'default'}
@@ -748,7 +748,7 @@ export default function MenuPage() {
                         <div>
                           <p className="font-semibold">{label(group.name)}</p>
                           <p className="text-xs text-muted-foreground">
-                            {group.minimum} - {group.maximum} selections
+                            {group.minimum} - {group.maximum} {t('selections')}
                           </p>
                         </div>
                         <Badge variant="secondary">{group.id}</Badge>
