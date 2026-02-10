@@ -18,14 +18,11 @@ export function formatMoney(amount: number, locale: Locale) {
 }
 
 export function formatCafeDate(date: Date, locale: Locale) {
-  const parts = new Intl.DateTimeFormat(
-    locale === 'th' ? 'th-TH' : 'en-GB',
-    {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-    },
-  )
+  const parts = new Intl.DateTimeFormat(locale === 'th' ? 'th-TH' : 'en-GB', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  })
     .formatToParts(date)
     .filter((part) => ['weekday', 'day', 'month'].includes(part.type))
     .map((part) => part.value)
