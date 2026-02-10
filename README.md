@@ -12,6 +12,20 @@ branch-hub workflow. Current work is limited to documentation, process
 refinement, and release-readiness polish. Product features are not the focus of
 the current roadmap.
 
+## Release readiness at a glance
+
+CafePOS is feature-complete. The remaining work before production launch is
+operational:
+
+- environment and secrets setup
+- branch hub installation and hardware validation
+- backup export and restore verification
+- operator smoke testing on real branch hardware
+- country-specific compliance and signoff
+
+Use the release checklist as the minimum gate and the production readiness plan
+as the launch record.
+
 ## Workspace
 
 - `apps/web` — Next.js installable web application and cloud back office.
