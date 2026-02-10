@@ -285,7 +285,9 @@ export default function InventoryPage() {
           <CardContent className="p-5">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-xl font-semibold">{t('stockItemEditor')}</h2>
+                <h2 className="text-xl font-semibold">
+                  {t('stockItemEditor')}
+                </h2>
                 <p className="text-sm text-muted-foreground">
                   {t('stockItemEditorDescription')}
                 </p>
@@ -392,7 +394,7 @@ export default function InventoryPage() {
                 !draft.quantity.trim() ||
                 !draft.reorderAt.trim()
               }
-              >
+            >
               {editingItemId !== null ? t('updateItem') : t('saveItem')}
             </Button>
           </CardContent>
