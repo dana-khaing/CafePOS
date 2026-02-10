@@ -64,7 +64,8 @@ export const messages = {
     searchPlaceholder: 'Search items or SKU',
     allCategories: 'All',
     categoryEditor: 'Category editor',
-    categoryEditorDescription: 'Add or update the groups used by the menu grid.',
+    categoryEditorDescription:
+      'Add or update the groups used by the menu grid.',
     menuItemEditor: 'Menu item editor',
     menuItemEditorDescription:
       'Create products and assign existing modifier groups.',

@@ -315,7 +315,9 @@ export default function MenuPage() {
             <CardContent className="p-5">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-xl font-semibold">{t('categoryEditor')}</h2>
+                  <h2 className="text-xl font-semibold">
+                    {t('categoryEditor')}
+                  </h2>
                   <p className="text-sm text-muted-foreground">
                     {t('categoryEditorDescription')}
                   </p>
@@ -421,7 +423,9 @@ export default function MenuPage() {
             <CardContent className="p-5">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-xl font-semibold">{t('menuItemEditor')}</h2>
+                  <h2 className="text-xl font-semibold">
+                    {t('menuItemEditor')}
+                  </h2>
                   <p className="text-sm text-muted-foreground">
                     {t('menuItemEditorDescription')}
                   </p>
@@ -469,7 +473,7 @@ export default function MenuPage() {
                         categoryId: event.target.value,
                       }))
                     }
-                    >
+                  >
                     <option value="">{t('chooseCategory')}</option>
                     {sortedCategories.map((entry) => (
                       <option key={entry.id} value={entry.id}>
@@ -583,12 +587,12 @@ export default function MenuPage() {
 
         <Card>
           <CardContent className="p-5">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                  <h2 className="text-xl font-semibold">{t('catalogPreview')}</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Current menu items and modifier groups loaded by the order
-                    screen.
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <h2 className="text-xl font-semibold">{t('catalogPreview')}</h2>
+                <p className="text-sm text-muted-foreground">
+                  Current menu items and modifier groups loaded by the order
+                  screen.
                 </p>
               </div>
               <label className="relative block w-full lg:max-w-sm">
@@ -690,14 +694,14 @@ export default function MenuPage() {
                             </p>
                           </div>
                           <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => editItem(item.id)}
-                          >
-                            <PencilLine aria-hidden="true" />
-                            {t('edit')}
-                          </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => editItem(item.id)}
+                            >
+                              <PencilLine aria-hidden="true" />
+                              {t('edit')}
+                            </Button>
                             <Button
                               size="sm"
                               variant={available ? 'outline' : 'default'}
