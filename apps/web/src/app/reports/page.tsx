@@ -21,7 +21,7 @@ import {
 import { buildDailySalesSummaries } from '@/lib/sales-summary'
 
 export default function ReportsPage() {
-  const { locale, money, t } = useLocale()
+  const { locale, money, date: formatDate, t } = useLocale()
   const [history, setHistory] = useState<SaleHistory>(emptyHistory)
   const [settings, setSettings] = useState(defaultSettings)
   const [date, setDate] = useState(() =>
@@ -159,7 +159,9 @@ export default function ReportsPage() {
                   {t('twoWeekSalesDescription')}
                 </p>
               </div>
-              <Badge variant="outline">{date}</Badge>
+              <Badge variant="outline">
+                {formatDate(new Date(`${date}T12:00:00Z`))}
+              </Badge>
             </div>
             <div className="mt-5 overflow-hidden rounded-lg border">
               <div className="grid grid-cols-[1.25fr_0.6fr_0.8fr_0.8fr] gap-3 border-b bg-muted/40 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">

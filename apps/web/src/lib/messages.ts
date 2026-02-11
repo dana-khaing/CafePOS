@@ -223,6 +223,7 @@ export const messages = {
     couldNotRemoveItem: 'Could not remove item.',
     couldNotChangeAvailability: 'Could not change availability.',
     chooseCategoryFirst: 'Choose a category first.',
+    modifierGroupsInUse: 'Modifier groups in use',
     reportsDescription: 'Review validated sales performance by business date.',
     businessDate: 'Business date',
     grossSales: 'Gross sales',
@@ -263,6 +264,17 @@ export const messages = {
     printerWidth: 'Receipt printer width',
     receiptFooter: 'Receipt footer',
     saveSettings: 'Save settings',
+    offlineTitle: 'CafePOS is offline',
+    offlineDescription:
+      'The branch hub could not be reached or did not report a ready status.',
+    offlineWiFiHelp:
+      'Check the café Wi-Fi, the hub machine, and the branch hub app.',
+    offlineHubHelp: 'Confirm the hub service is running on the branch server.',
+    offlineRetryHelp: 'Refresh the page or use the retry button in the header.',
+    offlineSettingsHelp:
+      'Make sure the branch hub URL in the app settings is correct.',
+    offlineStorageHelp:
+      'Existing open tabs remain stored on the hub and will be available after reconnecting.',
   },
   th: {
     overview: 'ภาพรวม',
@@ -483,6 +495,7 @@ export const messages = {
     couldNotRemoveItem: 'ไม่สามารถลบรายการได้',
     couldNotChangeAvailability: 'ไม่สามารถเปลี่ยนสถานะพร้อมขายได้',
     chooseCategoryFirst: 'โปรดเลือกหมวดหมู่ก่อน',
+    modifierGroupsInUse: 'กลุ่มตัวเลือกที่ใช้อยู่',
     reportsDescription: 'ดูผลการขายที่ตรวจสอบแล้วตามวันทำการ',
     businessDate: 'วันทำการ',
     grossSales: 'ยอดขายรวม',
@@ -519,6 +532,15 @@ export const messages = {
     printerWidth: 'ความกว้างเครื่องพิมพ์ใบเสร็จ',
     receiptFooter: 'ท้ายใบเสร็จ',
     saveSettings: 'บันทึกการตั้งค่า',
+    offlineTitle: 'CafePOS กำลังออฟไลน์',
+    offlineDescription:
+      'ไม่สามารถเชื่อมต่อฮับสาขาได้ หรือฮับไม่ได้รายงานสถานะพร้อมใช้งาน',
+    offlineWiFiHelp: 'ตรวจสอบ Wi‑Fi ร้าน เครื่องฮับ และแอป branch hub',
+    offlineHubHelp: 'ยืนยันว่าบริการฮับกำลังทำงานบนเซิร์ฟเวอร์สาขา',
+    offlineRetryHelp: 'รีเฟรชหน้า หรือใช้ปุ่มลองใหม่ที่ส่วนหัว',
+    offlineSettingsHelp: 'ตรวจสอบว่า URL ของ branch hub ในการตั้งค่าแอปถูกต้อง',
+    offlineStorageHelp:
+      'แท็บที่เปิดอยู่จะยังถูกเก็บไว้ในฮับ และจะกลับมาใช้งานได้เมื่อเชื่อมต่อใหม่',
   },
 } as const
 
