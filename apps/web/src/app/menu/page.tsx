@@ -743,7 +743,9 @@ export default function MenuPage() {
             )}
 
             <div className="mt-6">
-              <h3 className="text-lg font-semibold">Modifier groups in use</h3>
+              <h3 className="text-lg font-semibold">
+                {t('modifierGroupsInUse')}
+              </h3>
               <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {menu.modifierGroups.map((group) => (
                   <Card key={group.id}>
