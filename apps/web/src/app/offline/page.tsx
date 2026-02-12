@@ -1,3 +1,5 @@
+'use client'
+
 import { AppShell } from '@/components/app-shell'
 import { useLocale } from '@/components/locale-provider'
 import { CloudOff } from 'lucide-react'
