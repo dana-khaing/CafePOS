@@ -3,6 +3,13 @@
 This guide explains how front-of-house staff, managers, and owners use CafePOS
 day to day.
 
+## Quick role map
+
+- Cashier: Orders, History, Shifts, Kitchen, and Reports.
+- Manager: Menu, Inventory, Backup & recovery, and Settings.
+- Owner or admin: branch onboarding and provisioning happen outside the cashier
+  PIN used in the app.
+
 ## What the app does
 
 CafePOS is split into a few working areas:
@@ -16,6 +23,21 @@ CafePOS is split into a few working areas:
 - Reports: review sales and operational summaries.
 - Backup & recovery: manage local backup and restore workflows.
 - Settings: change local preferences and branch configuration.
+
+## How to move through the app
+
+Start with the branch hub badge in the header, then use the left menu to open
+the area you need.
+
+- Use Orders to take sales.
+- Use Menu to add or edit catalog data.
+- Use Inventory to track stock items and adjustments.
+- Use History to review completed sales and receipts.
+- Use Shifts to open, monitor, and close cash shifts.
+- Use Kitchen to see active tickets.
+- Use Reports to review totals and summaries.
+- Use Backup & recovery before and after major operational changes.
+- Use Settings to change local branch options.
 
 ## Enforcement summary
 
@@ -61,6 +83,8 @@ check without reloading the whole page.
 3. Pick a category or search for the item.
 4. Open the product card.
 5. Choose any required modifiers such as size or milk.
+   - Required choices must be selected before the item can be added.
+   - Optional choices can be skipped.
 6. Click Add to order.
 7. Review the right-hand order panel.
 8. Change quantities with the plus and minus buttons.
@@ -71,6 +95,8 @@ If the order is a table order, enter the table number before submitting.
 ## How menu management works
 
 The Menu page is where a manager keeps the catalog up to date.
+
+Menu changes stay on the device until sync or backup moves them elsewhere.
 
 ### Add a category
 
@@ -120,6 +146,9 @@ Example:
 - price: `12000`
 - tax rate id: `vat7`
 
+Keep item ids and SKUs stable after launch so receipts, reports, and stock
+links stay consistent.
+
 ### Edit a menu item
 
 1. Find the item in the catalog preview.
@@ -154,6 +183,10 @@ Use it to:
 - add new stock items;
 - edit item names, units, quantities, and reorder points;
 - adjust stock up or down after delivery, waste, or count corrections.
+
+Inventory also drives menu stock warnings. If a recipe ingredient falls below
+its threshold, the order screen shows a warning. If stock runs out, the item is
+blocked from ordering.
 
 ### Add or edit a stock item
 
@@ -191,6 +224,8 @@ Examples:
 - `+20` for new deliveries
 - `-3` for spoilage
 - `-1` for staff use
+
+Use small, traceable adjustments instead of overwriting stock manually.
 
 ### When to use inventory adjustments
 
@@ -240,6 +275,8 @@ Backups should be checked before any production go-live.
 Restore is manager-protected and only accepts a validated CafePOS backup with
 the expected schema and checksum.
 
+If restore fails, stop and recheck the backup file before trying again.
+
 ## Settings
 
 Settings are for branch-level configuration such as:
@@ -252,6 +289,18 @@ Settings are for branch-level configuration such as:
 If you change branch credentials or hub settings, do it carefully and record the change.
 Branch provisioning credentials are separate from the manager PIN used inside
 the cashier app.
+
+## Common day flow
+
+For a typical shift:
+
+1. Check hub status and branch name.
+2. Review menu availability and stock warnings.
+3. Take orders.
+4. Send tickets to the kitchen.
+5. Monitor History and Reports.
+6. Close the shift.
+7. Export a backup if store policy requires it.
 
 ## Common operational flow
 
@@ -271,3 +320,6 @@ For a normal shift:
 - Wrong prices: verify the menu item price and modifier prices.
 - Inventory mismatch: do a manual stock count and adjust the item.
 - Orders not submitting: check branch connectivity and local storage status.
+- Low-stock warning: restock the ingredient or mark the menu item unavailable.
+- Backup restore rejected: confirm the file is a CafePOS backup with the right
+  schema and checksum.
