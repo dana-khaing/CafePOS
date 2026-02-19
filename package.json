@@ -4,6 +4,19 @@
   "private": true,
   "description": "Offline-first multi-branch cafe and restaurant point-of-sale system",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dana-khaing/CafePOS.git"
+  },
+  "keywords": [
+    "pos",
+    "point-of-sale",
+    "offline-first",
+    "cafe",
+    "restaurant",
+    "nextjs",
+    "turborepo"
+  ],
   "packageManager": "pnpm@10.13.1",
   "engines": {
     "node": ">=22"
