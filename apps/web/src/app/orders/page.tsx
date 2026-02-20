@@ -79,6 +79,7 @@ import {
   type ModifierSelections as GroupModifierSelections,
 } from '@/lib/order-customizer'
 import { withCriticalStorageLock } from '@/lib/storage-lock'
+import { BRANCH_ID } from '@/lib/branch-config'
 
 const vat = {
   id: 'vat7',
@@ -340,7 +341,7 @@ export default function OrdersPage() {
       const event =
         pendingEventRef.current ??
         submitDraftOrder(order, {
-          branchId: 'branch-riverside',
+          branchId: BRANCH_ID,
           actorId: 'cashier-local',
           submittedAt: new Date().toISOString(),
           eventId: `order:${order.id}:v1`,

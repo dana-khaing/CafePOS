@@ -14,6 +14,7 @@ import { useLocale } from '@/components/locale-provider'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { BRANCH_ID } from '@/lib/branch-config'
 import { verifyManagerPin } from '@/lib/manager-client'
 import {
   SHIFT_STORAGE_KEY,
@@ -102,7 +103,7 @@ export default function ShiftsPage() {
           if (latest.current) throw new TypeError('A shift is already open')
           const current = openCashShift({
             id: `shift-${crypto.randomUUID()}`,
-            branchId: 'branch-riverside',
+            branchId: BRANCH_ID,
             actorId: 'manager-approved',
             actorRole: 'manager',
             openedAt: new Date().toISOString(),
