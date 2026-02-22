@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import type { Route } from 'next'
 import {
   ArrowRight,
   LayoutGrid,
@@ -40,16 +41,19 @@ const quickActions = [
     label: 'counterService' as const,
     description: 'counterDetail' as const,
     icon: Plus,
+    href: '/orders' as Route,
   },
   {
     label: 'diningRoom' as const,
     description: 'diningDetail' as const,
     icon: LayoutGrid,
+    href: '/orders?mode=table' as Route,
   },
   {
     label: 'kitchenQueue' as const,
     description: 'kitchenDetail' as const,
     icon: Utensils,
+    href: '/kitchen' as Route,
   },
 ]
 
@@ -151,21 +155,23 @@ export default function HomePage() {
           </h2>
           <div className="grid gap-3 md:grid-cols-3">
             {quickActions.map((action) => (
-              <Card key={action.label}>
-                <CardContent className="flex items-center gap-4 p-5">
-                  <span className="grid size-12 shrink-0 place-items-center rounded-lg bg-accent text-accent-foreground">
-                    <action.icon className="size-5" aria-hidden="true" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block font-semibold">
-                      {t(action.label)}
+              <Link key={action.label} href={action.href} className="block">
+                <Card className="transition-colors hover:bg-muted/50">
+                  <CardContent className="flex items-center gap-4 p-5">
+                    <span className="grid size-12 shrink-0 place-items-center rounded-lg bg-accent text-accent-foreground">
+                      <action.icon className="size-5" aria-hidden="true" />
                     </span>
-                    <span className="block text-sm text-muted-foreground">
-                      {t(action.description)}
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-semibold">
+                        {t(action.label)}
+                      </span>
+                      <span className="block text-sm text-muted-foreground">
+                        {t(action.description)}
+                      </span>
                     </span>
-                  </span>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
           </div>
         </section>
