@@ -10,6 +10,7 @@ import {
   Utensils,
 } from 'lucide-react'
 import Link from 'next/link'
+import { refundedTotal, validateRefundEvent } from '@cafepos/domain'
 
 import { AppShell } from '@/components/app-shell'
 import { useLocale } from '@/components/locale-provider'
@@ -54,27 +55,6 @@ const quickActions = [
     description: 'kitchenDetail' as const,
     icon: Utensils,
     href: '/kitchen' as Route,
-  },
-]
-
-const activity = [
-  {
-    reference: '#1042',
-    detail: 'tableItems' as const,
-    total: 640,
-    status: 'preparing' as const,
-  },
-  {
-    reference: '#1041',
-    detail: 'takeawayItems' as const,
-    total: 185,
-    status: 'ready' as const,
-  },
-  {
-    reference: '#1040',
-    detail: 'counterItems' as const,
-    total: 320,
-    status: 'paid' as const,
   },
 ]
 
@@ -128,6 +108,41 @@ export default function HomePage() {
         : sales.percentChange < 0
           ? 'warning'
           : 'outline'
+  const recentActivity = useMemo(
+    () =>
+      [...history.receipts]
+        .sort((left, right) => right.issuedAt.localeCompare(left.issuedAt))
+        .slice(0, 5)
+        .map((receipt) => {
+          const refunds = [
+            ...history.refunds,
+            ...history.pendingRefunds.map(validateRefundEvent),
+          ].filter((entry) => entry.receiptId === receipt.id)
+          const refunded = refundedTotal(
+            refunds,
+            receipt.totals.gross.currency,
+          ).minor
+          const status =
+            refunded > 0 && refunded >= receipt.totals.gross.minor
+              ? ('fullyRefunded' as const)
+              : refunded > 0
+                ? ('refunded' as const)
+                : ('paid' as const)
+          const mode = receipt.order.diningMode
+          const modeLabel =
+            mode === 'table'
+              ? `${t('table')} ${receipt.order.tableNumber ?? ''}`.trim()
+              : t(mode)
+          return {
+            id: receipt.id,
+            reference: receipt.number,
+            detail: `${modeLabel} · ${receipt.order.lines.length} ${t('itemCount')}`,
+            totalMinor: receipt.totals.gross.minor,
+            status,
+          }
+        }),
+    [history, t],
+  )
   return (
     <AppShell>
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-4 md:p-6 lg:p-8">
@@ -224,32 +239,38 @@ export default function HomePage() {
             </Button>
           </CardHeader>
           <CardContent className="grid gap-1">
-            {activity.map((item) => (
-              <div
-                key={item.reference}
-                className="flex items-center gap-3 rounded-lg px-2 py-3 hover:bg-muted"
-              >
-                <span className="grid size-10 shrink-0 place-items-center rounded-md bg-secondary">
-                  <ReceiptText className="size-4" aria-hidden="true" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block font-mono text-sm font-semibold">
-                    {item.reference}
+            {recentActivity.length === 0 ? (
+              <p className="px-2 py-6 text-center text-sm text-muted-foreground">
+                {t('noRecentActivity')}
+              </p>
+            ) : (
+              recentActivity.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center gap-3 rounded-lg px-2 py-3 hover:bg-muted"
+                >
+                  <span className="grid size-10 shrink-0 place-items-center rounded-md bg-secondary">
+                    <ReceiptText className="size-4" aria-hidden="true" />
                   </span>
-                  <span className="block truncate text-sm text-muted-foreground">
-                    {t(item.detail)}
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-mono text-sm font-semibold">
+                      {item.reference}
+                    </span>
+                    <span className="block truncate text-sm text-muted-foreground">
+                      {item.detail}
+                    </span>
                   </span>
-                </span>
-                <span className="hidden text-right sm:block">
-                  <span className="block font-mono text-sm font-semibold">
-                    {money(item.total)}
+                  <span className="hidden text-right sm:block">
+                    <span className="block font-mono text-sm font-semibold">
+                      {money(item.totalMinor / 100)}
+                    </span>
+                    <span className="block text-xs text-muted-foreground">
+                      {t(item.status)}
+                    </span>
                   </span>
-                  <span className="block text-xs text-muted-foreground">
-                    {t(item.status)}
-                  </span>
-                </span>
-              </div>
-            ))}
+                </div>
+              ))
+            )}
           </CardContent>
         </Card>
       </div>
