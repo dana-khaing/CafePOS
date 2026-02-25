@@ -41,6 +41,7 @@ export function PaymentDialog({
   const [error, setError] = useState(false)
   const [busy, setBusy] = useState(false)
   const sendingRef = useRef(false)
+  const tenderingRef = useRef(false)
   const pendingEventRef = useRef<SyncEvent | null>(null)
   const summary = paymentSummary(session)
   const cashMinor = Math.round(Number(cash) * 100)
@@ -92,7 +93,10 @@ export function PaymentDialog({
   }
 
   const tender = async (method: PaymentMethod, amount: number) => {
-    if (sendingRef.current || session.status === 'paid') return
+    if (tenderingRef.current || sendingRef.current || session.status === 'paid')
+      return
+    tenderingRef.current = true
+    setBusy(true)
     setError(false)
     try {
       const updated = addPaymentTender(session, {
@@ -110,6 +114,8 @@ export function PaymentDialog({
       if (updated.status === 'paid') await sendPaidPayment(updated)
     } catch {
       setError(true)
+    } finally {
+      tenderingRef.current = false
       setBusy(false)
     }
   }
