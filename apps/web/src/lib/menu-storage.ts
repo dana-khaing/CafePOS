@@ -1,4 +1,5 @@
 import { money, type Menu, validateMenu } from '@cafepos/domain'
+import { withCriticalStorageLock } from './storage-lock'
 
 export const MENU_STORAGE_KEY = 'cafepos.menu.v1'
 
@@ -131,4 +132,17 @@ export function parseStoredMenu(
 
 export function serializeMenu(menu: Menu): string {
   return JSON.stringify(validateMenu(menu))
+}
+
+export async function updateStoredMenu(
+  storage: Storage,
+  update: (menu: Menu) => Menu,
+) {
+  return withCriticalStorageLock(() => {
+    const next = update(
+      parseStoredMenu(storage.getItem(MENU_STORAGE_KEY), defaultMenu()),
+    )
+    storage.setItem(MENU_STORAGE_KEY, serializeMenu(next))
+    return next
+  })
 }
