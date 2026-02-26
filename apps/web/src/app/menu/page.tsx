@@ -22,9 +22,8 @@ import {
   defaultMenu,
   MENU_STORAGE_KEY,
   parseStoredMenu,
-  serializeMenu,
+  updateStoredMenu,
 } from '@/lib/menu-storage'
-import { withCriticalStorageLock } from '@/lib/storage-lock'
 
 type CategoryDraft = Readonly<{
   id: string
@@ -72,7 +71,6 @@ const emptyItemDraft = (categoryId = ''): ItemDraft => ({
 export default function MenuPage() {
   const { locale, money: formatMoney, t } = useLocale()
   const [menu, setMenu] = useState<Menu>(defaultMenu())
-  const [storageReady, setStorageReady] = useState(false)
   const [category, setCategory] = useState('all')
   const [query, setQuery] = useState('')
   const [categoryDraft, setCategoryDraft] =
@@ -102,20 +100,7 @@ export default function MenuPage() {
         message: t('menuDataReset'),
       })
     }
-    setStorageReady(true)
   }, [])
-
-  useEffect(() => {
-    if (!storageReady) return
-    void withCriticalStorageLock(() =>
-      window.localStorage.setItem(MENU_STORAGE_KEY, serializeMenu(menu)),
-    ).catch(() => {
-      setNotice({
-        kind: 'error',
-        message: t('menuChangesCouldNotBeSaved'),
-      })
-    })
-  }, [menu, storageReady, t])
 
   const label = (text: { en: string; th?: string }) =>
     locale === 'th' && text.th ? text.th : text.en
@@ -164,16 +149,19 @@ export default function MenuPage() {
     }
   }, [itemDraft.categoryId, sortedCategories])
 
-  const saveCategory = () => {
+  const saveCategory = async () => {
     try {
-      const next = saveMenuCategory(menu, {
+      const draft = {
         id: categoryDraft.id.trim(),
         name: {
           en: categoryDraft.en.trim(),
           th: categoryDraft.th.trim() || undefined,
         },
         sortOrder: parseMinorUnits(categoryDraft.sortOrder, t('sortOrder')),
-      })
+      }
+      const next = await updateStoredMenu(window.localStorage, (current) =>
+        saveMenuCategory(current, draft),
+      )
       setMenu(next)
       clearCategoryDraft()
       setNotice({ kind: 'saved', message: t('categorySaved') })
@@ -198,9 +186,12 @@ export default function MenuPage() {
     setEditingCategoryId(current.id)
   }
 
-  const deleteCategory = (id: string) => {
+  const deleteCategory = async (id: string) => {
     try {
-      setMenu((current) => removeMenuCategory(current, id))
+      const next = await updateStoredMenu(window.localStorage, (current) =>
+        removeMenuCategory(current, id),
+      )
+      setMenu(next)
       if (editingCategoryId === id) clearCategoryDraft()
       setNotice({ kind: 'saved', message: t('categoryRemoved') })
     } catch (error) {
@@ -212,12 +203,12 @@ export default function MenuPage() {
     }
   }
 
-  const saveItem = () => {
+  const saveItem = async () => {
     try {
       if (!itemDraft.categoryId) {
         throw new TypeError(t('chooseCategoryFirst'))
       }
-      const next = saveMenuItem(menu, {
+      const draft = {
         id: itemDraft.id.trim(),
         categoryId: itemDraft.categoryId,
         sku: itemDraft.sku.trim(),
@@ -229,7 +220,10 @@ export default function MenuPage() {
         taxRateId: itemDraft.taxRateId.trim(),
         available: itemDraft.available,
         modifierGroupIds: itemDraft.modifierGroupIds,
-      })
+      }
+      const next = await updateStoredMenu(window.localStorage, (current) =>
+        saveMenuItem(current, draft),
+      )
       setMenu(next)
       clearItemDraft()
       setNotice({ kind: 'saved', message: t('menuItemSaved') })
@@ -259,9 +253,12 @@ export default function MenuPage() {
     setEditingItemId(current.id)
   }
 
-  const deleteItem = (id: string) => {
+  const deleteItem = async (id: string) => {
     try {
-      setMenu((current) => removeMenuItem(current, id))
+      const next = await updateStoredMenu(window.localStorage, (current) =>
+        removeMenuItem(current, id),
+      )
+      setMenu(next)
       if (editingItemId === id) clearItemDraft()
       setNotice({ kind: 'saved', message: t('menuItemRemoved') })
     } catch (error) {
@@ -273,9 +270,12 @@ export default function MenuPage() {
     }
   }
 
-  const toggleItemAvailability = (id: string, available: boolean) => {
+  const toggleItemAvailability = async (id: string, available: boolean) => {
     try {
-      setMenu((current) => setMenuItemVisibility(current, id, available))
+      const next = await updateStoredMenu(window.localStorage, (current) =>
+        setMenuItemVisibility(current, id, available),
+      )
+      setMenu(next)
     } catch (error) {
       setNotice({
         kind: 'error',
@@ -382,7 +382,7 @@ export default function MenuPage() {
                   />
                 </label>
               </div>
-              <Button className="mt-4" onClick={saveCategory}>
+              <Button className="mt-4" onClick={() => void saveCategory()}>
                 {editingCategoryId ? t('updateCategory') : t('saveCategory')}
               </Button>
               <div className="mt-6 flex flex-wrap gap-2">
@@ -409,7 +409,7 @@ export default function MenuPage() {
                       className="text-muted-foreground hover:text-destructive"
                       aria-label={`Delete category ${label(entry.name)}`}
                       title={`Delete category ${label(entry.name)}`}
-                      onClick={() => deleteCategory(entry.id)}
+                      onClick={() => void deleteCategory(entry.id)}
                     >
                       <Trash2 className="size-4" aria-hidden="true" />
                     </button>
@@ -578,7 +578,7 @@ export default function MenuPage() {
                 </div>
               </div>
 
-              <Button className="mt-4" onClick={saveItem}>
+              <Button className="mt-4" onClick={() => void saveItem()}>
                 {editingItemId ? t('updateItem') : t('saveItem')}
               </Button>
             </CardContent>
@@ -706,7 +706,7 @@ export default function MenuPage() {
                               size="sm"
                               variant={available ? 'outline' : 'default'}
                               onClick={() =>
-                                toggleItemAvailability(item.id, !available)
+                                void toggleItemAvailability(item.id, !available)
                               }
                               aria-label={`${available ? t('markUnavailable') : t('markAvailable')}: ${label(item.name)}`}
                             >
@@ -723,7 +723,7 @@ export default function MenuPage() {
                               size="sm"
                               variant="outline"
                               aria-label={`Delete item ${label(item.name)}`}
-                              onClick={() => deleteItem(item.id)}
+                              onClick={() => void deleteItem(item.id)}
                             >
                               <Trash2 aria-hidden="true" />
                             </Button>
