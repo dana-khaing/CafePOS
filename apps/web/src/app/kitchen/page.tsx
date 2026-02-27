@@ -1,7 +1,7 @@
 'use client'
 
 import { ChefHat, Clock3, RefreshCw } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { type KitchenTicket } from '@cafepos/domain'
 
 import { AppShell } from '@/components/app-shell'
@@ -19,12 +19,17 @@ export default function KitchenPage() {
   const [tickets, setTickets] = useState<readonly KitchenTicket[]>([])
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [busyTicket, setBusyTicket] = useState<string | null>(null)
+  const inFlightRef = useRef(false)
   const refresh = useCallback(async () => {
+    if (inFlightRef.current) return
+    inFlightRef.current = true
     try {
       setTickets(await loadKitchenTickets())
       setStatus('ready')
     } catch {
       setStatus('error')
+    } finally {
+      inFlightRef.current = false
     }
   }, [])
 
