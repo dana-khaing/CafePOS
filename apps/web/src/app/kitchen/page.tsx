@@ -20,11 +20,17 @@ export default function KitchenPage() {
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [busyTicket, setBusyTicket] = useState<string | null>(null)
   const inFlightRef = useRef(false)
+  const revisionRef = useRef(0)
   const refresh = useCallback(async () => {
     if (inFlightRef.current) return
     inFlightRef.current = true
+    const startRevision = revisionRef.current
     try {
-      setTickets(await loadKitchenTickets())
+      const next = await loadKitchenTickets()
+      // Skip applying a poll response that started before a ticket was
+      // advanced locally - it reflects pre-advance state and would revert
+      // the just-advanced ticket until the next poll cycle catches up.
+      if (revisionRef.current === startRevision) setTickets(next)
       setStatus('ready')
     } catch {
       setStatus('error')
@@ -44,6 +50,7 @@ export default function KitchenPage() {
     setBusyTicket(ticket.id)
     try {
       const updated = await advanceKitchenTicketAtHub(ticket.id, ticket.status)
+      revisionRef.current += 1
       setTickets((current) =>
         updated.status === 'completed'
           ? current.filter((entry) => entry.id !== updated.id)
