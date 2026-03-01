@@ -343,7 +343,17 @@ export default function OrdersPage() {
     ) {
       return
     }
-    add(customizingProduct)
+    // customizingProduct is a snapshot captured when the dialog opened and
+    // is never refreshed while it stays open - re-check live stock here so
+    // an item that sold out mid-dialog can't still be added.
+    const liveStockState =
+      stockStateByItemId[customizingProduct.item.id] ??
+      customizingProduct.stockState
+    if (!liveStockState.sellable) {
+      setCustomizingProduct(null)
+      return
+    }
+    add({ ...customizingProduct, stockState: liveStockState })
     setCustomizingProduct(null)
   }
 
