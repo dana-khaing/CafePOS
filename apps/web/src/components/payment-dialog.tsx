@@ -1,7 +1,7 @@
 'use client'
 
 import { CreditCard, QrCode, WalletCards } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import {
   addPaymentTender,
   completePayment,
@@ -43,8 +43,36 @@ export function PaymentDialog({
   const sendingRef = useRef(false)
   const tenderingRef = useRef(false)
   const pendingEventRef = useRef<SyncEvent | null>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
   const summary = paymentSummary(session)
   const cashMinor = Math.round(Number(cash) * 100)
+
+  useEffect(() => {
+    dialogRef.current?.focus()
+  }, [])
+
+  const containFocus = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'Tab') return
+    const controls = [
+      ...(dialogRef.current?.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      ) ?? []),
+    ].filter((entry) => !entry.hasAttribute('disabled'))
+    if (!controls.length) return
+    const first = controls[0]!
+    const last = controls[controls.length - 1]!
+    if (
+      event.shiftKey &&
+      (document.activeElement === first ||
+        document.activeElement === dialogRef.current)
+    ) {
+      event.preventDefault()
+      last.focus()
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault()
+      first.focus()
+    }
+  }
 
   useEffect(() => {
     const pending = parsePendingPaymentEvent(
@@ -127,6 +155,9 @@ export function PaymentDialog({
       role="dialog"
       aria-modal="true"
       aria-labelledby="payment-title"
+      ref={dialogRef}
+      tabIndex={-1}
+      onKeyDown={containFocus}
     >
       <div className="w-full max-w-lg rounded-2xl border bg-card p-6 shadow-2xl">
         <h2 id="payment-title" className="text-2xl font-semibold">
