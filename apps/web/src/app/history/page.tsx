@@ -38,6 +38,8 @@ export default function HistoryPage() {
   const [pendingRetry, setPendingRetry] = useState<SyncEvent | null>(null)
   const [error, setError] = useState(false)
   const sendingRef = useRef(false)
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const returnFocusRef = useRef<HTMLElement | null>(null)
   useEffect(
     () =>
       setHistory(parseSaleHistory(localStorage.getItem(HISTORY_STORAGE_KEY))),
@@ -115,6 +117,41 @@ export default function HistoryPage() {
       setError(true)
     }
   }
+  const closeRefundDialog = () => {
+    setSelected(null)
+    setPendingRetry(null)
+    setManagerPin('')
+  }
+  useEffect(() => {
+    if (!selected) return
+    returnFocusRef.current = document.activeElement as HTMLElement
+    const dialog = dialogRef.current
+    const focusable = () =>
+      [
+        ...(dialog?.querySelectorAll<HTMLElement>('input, button') ?? []),
+      ].filter((entry) => !entry.hasAttribute('disabled'))
+    focusable()[0]?.focus()
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !sendingRef.current) closeRefundDialog()
+      if (event.key !== 'Tab') return
+      const entries = focusable()
+      const first = entries[0]
+      const last = entries.at(-1)
+      if (!first || !last) return
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      returnFocusRef.current?.focus()
+    }
+  }, [selected])
   return (
     <AppShell>
       <section className="p-4 md:p-8">
@@ -232,7 +269,10 @@ export default function HistoryPage() {
             aria-modal="true"
             aria-labelledby="refund-title"
           >
-            <div className="w-full max-w-md rounded-2xl border bg-card p-6 shadow-2xl">
+            <div
+              ref={dialogRef}
+              className="w-full max-w-md rounded-2xl border bg-card p-6 shadow-2xl"
+            >
               <h2 id="refund-title" className="text-2xl font-semibold">
                 {t('refund')}
               </h2>
@@ -270,14 +310,7 @@ export default function HistoryPage() {
                 />
               </label>
               <div className="mt-6 grid grid-cols-2 gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setSelected(null)
-                    setPendingRetry(null)
-                    setManagerPin('')
-                  }}
-                >
+                <Button variant="outline" onClick={closeRefundDialog}>
                   {t('cancel')}
                 </Button>
                 <Button
