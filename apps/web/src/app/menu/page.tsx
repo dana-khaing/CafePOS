@@ -86,20 +86,25 @@ export default function MenuPage() {
   })
 
   useEffect(() => {
-    try {
-      setMenu(
-        parseStoredMenu(
-          window.localStorage.getItem(MENU_STORAGE_KEY),
-          defaultMenu(),
-        ),
-      )
-    } catch {
-      setMenu(defaultMenu())
-      setNotice({
-        kind: 'error',
-        message: t('menuDataReset'),
-      })
+    const load = () => {
+      try {
+        setMenu(
+          parseStoredMenu(
+            window.localStorage.getItem(MENU_STORAGE_KEY),
+            defaultMenu(),
+          ),
+        )
+      } catch {
+        setMenu(defaultMenu())
+        setNotice({
+          kind: 'error',
+          message: t('menuDataReset'),
+        })
+      }
     }
+    load()
+    window.addEventListener('storage', load)
+    return () => window.removeEventListener('storage', load)
   }, [])
 
   const label = (text: { en: string; th?: string }) =>
