@@ -21,11 +21,16 @@ export default function SettingsPage() {
   const [status, setStatus] = useState<'idle' | 'saved' | 'error'>('idle')
   const busy = useRef(false)
   useEffect(() => {
-    try {
-      setSettings(parseSettings(localStorage.getItem(SETTINGS_STORAGE_KEY)))
-    } catch {
-      setStatus('error')
+    const load = () => {
+      try {
+        setSettings(parseSettings(localStorage.getItem(SETTINGS_STORAGE_KEY)))
+      } catch {
+        setStatus('error')
+      }
     }
+    load()
+    window.addEventListener('storage', load)
+    return () => window.removeEventListener('storage', load)
   }, [])
   const update = <K extends keyof CafeSettings>(
     key: K,
