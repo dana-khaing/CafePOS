@@ -304,7 +304,7 @@ export default function MenuPage() {
 
         {notice.kind !== 'idle' && notice.message && (
           <p
-            role="status"
+            role={notice.kind === 'error' ? 'alert' : 'status'}
             className={`rounded-md p-3 text-sm ${
               notice.kind === 'saved'
                 ? 'bg-emerald-500/10 text-emerald-700'
