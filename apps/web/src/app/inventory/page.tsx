@@ -390,7 +390,7 @@ export default function InventoryPage() {
               disabled={
                 !draft.id.trim() ||
                 !draft.name.trim() ||
-                !editorPin.trim() ||
+                editorPin.length < 4 ||
                 !draft.quantity.trim() ||
                 !draft.reorderAt.trim()
               }
