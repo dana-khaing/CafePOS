@@ -73,6 +73,7 @@ export default function HomePage() {
   const [history, setHistory] = useState<SaleHistory>(emptyHistory())
   const [settings, setSettings] = useState(defaultSettings())
   const [shiftLedger, setShiftLedger] = useState<ShiftLedger>(emptyShiftLedger)
+  const [settingsError, setSettingsError] = useState(false)
   const [now, setNow] = useState(() => Date.now())
   const [businessDate, setBusinessDate] = useState(() =>
     dateInTimezone(new Date(), defaultSettings().timezone),
@@ -86,8 +87,11 @@ export default function HomePage() {
         const next = parseSettings(localStorage.getItem(SETTINGS_STORAGE_KEY))
         setSettings(next)
         setBusinessDate(dateInTimezone(new Date(), next.timezone))
+        setSettingsError(false)
       } catch {
-        // Keep validated defaults if settings storage is corrupt.
+        // Keep validated defaults if settings storage is corrupt, but let
+        // the operator know the branch name/timezone shown may be wrong.
+        setSettingsError(true)
       }
     }
     load()
@@ -174,6 +178,14 @@ export default function HomePage() {
   return (
     <AppShell>
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-4 md:p-6 lg:p-8">
+        {settingsError && (
+          <p
+            role="alert"
+            className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
+          >
+            {t('settingsDataReset')}
+          </p>
+        )}
         <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
             <p className="text-sm font-medium text-muted-foreground">
