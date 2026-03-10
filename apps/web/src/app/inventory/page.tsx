@@ -406,53 +406,61 @@ export default function InventoryPage() {
           </CardContent>
         </Card>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {sortedItems.map((item) => (
-            <Card key={item.id}>
-              <CardContent className="flex h-full flex-col p-5">
-                <div className="flex justify-between gap-3">
-                  <div>
-                    <p className="font-semibold">{item.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {t('reorderAt')} {item.reorderAt} {item.unit}
-                    </p>
+        {sortedItems.length ? (
+          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {sortedItems.map((item) => (
+              <Card key={item.id}>
+                <CardContent className="flex h-full flex-col p-5">
+                  <div className="flex justify-between gap-3">
+                    <div>
+                      <p className="font-semibold">{item.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {t('reorderAt')} {item.reorderAt} {item.unit}
+                      </p>
+                    </div>
+                    <PackageOpen aria-hidden="true" />
                   </div>
-                  <PackageOpen aria-hidden="true" />
-                </div>
-                <p
-                  className={`mt-4 text-2xl font-semibold ${item.quantity <= item.reorderAt ? 'text-amber-600' : ''}`}
-                >
-                  {item.quantity}{' '}
-                  <span className="text-sm font-normal">{item.unit}</span>
-                </p>
-                <div className="mt-auto flex gap-2 pt-4">
-                  <Button
-                    className="flex-1"
-                    variant="outline"
-                    onClick={() => editItem(item)}
+                  <p
+                    className={`mt-4 text-2xl font-semibold ${item.quantity <= item.reorderAt ? 'text-amber-600' : ''}`}
                   >
-                    <PencilLine aria-hidden="true" />
-                    {t('edit')}
-                  </Button>
-                  <Button
-                    className="flex-1"
-                    variant="outline"
-                    onClick={() => {
-                      setSelected(item)
-                      setDelta('')
-                      setReason('')
-                      setAdjustPin('')
-                      setError(false)
-                      setNotice({ kind: 'idle', message: '' })
-                    }}
-                  >
-                    {t('adjustStock')}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                    {item.quantity}{' '}
+                    <span className="text-sm font-normal">{item.unit}</span>
+                  </p>
+                  <div className="mt-auto flex gap-2 pt-4">
+                    <Button
+                      className="flex-1"
+                      variant="outline"
+                      onClick={() => editItem(item)}
+                    >
+                      <PencilLine aria-hidden="true" />
+                      {t('edit')}
+                    </Button>
+                    <Button
+                      className="flex-1"
+                      variant="outline"
+                      onClick={() => {
+                        setSelected(item)
+                        setDelta('')
+                        setReason('')
+                        setAdjustPin('')
+                        setError(false)
+                        setNotice({ kind: 'idle', message: '' })
+                      }}
+                    >
+                      {t('adjustStock')}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Card className="mt-6">
+            <CardContent className="p-10 text-center text-muted-foreground">
+              {t('noStockItems')}
+            </CardContent>
+          </Card>
+        )}
 
         {selected && (
           <div
