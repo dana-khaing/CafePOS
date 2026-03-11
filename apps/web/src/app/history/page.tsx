@@ -37,6 +37,7 @@ export default function HistoryPage() {
   const [managerPin, setManagerPin] = useState('')
   const [pendingRetry, setPendingRetry] = useState<SyncEvent | null>(null)
   const [error, setError] = useState(false)
+  const [sending, setSending] = useState(false)
   const sendingRef = useRef(false)
   const dialogRef = useRef<HTMLDivElement>(null)
   const returnFocusRef = useRef<HTMLElement | null>(null)
@@ -72,6 +73,7 @@ export default function HistoryPage() {
   const send = async (receipt: Receipt, event: SyncEvent) => {
     if (sendingRef.current) return
     sendingRef.current = true
+    setSending(true)
     setError(false)
     try {
       const staged = stageRefund(history, event)
@@ -92,6 +94,7 @@ export default function HistoryPage() {
       setError(true)
     } finally {
       sendingRef.current = false
+      setSending(false)
     }
   }
   const submit = () => {
@@ -310,7 +313,11 @@ export default function HistoryPage() {
                 />
               </label>
               <div className="mt-6 grid grid-cols-2 gap-3">
-                <Button variant="outline" onClick={closeRefundDialog}>
+                <Button
+                  variant="outline"
+                  disabled={sending}
+                  onClick={closeRefundDialog}
+                >
                   {t('cancel')}
                 </Button>
                 <Button
