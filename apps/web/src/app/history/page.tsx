@@ -41,11 +41,13 @@ export default function HistoryPage() {
   const sendingRef = useRef(false)
   const dialogRef = useRef<HTMLDivElement>(null)
   const returnFocusRef = useRef<HTMLElement | null>(null)
-  useEffect(
-    () =>
-      setHistory(parseSaleHistory(localStorage.getItem(HISTORY_STORAGE_KEY))),
-    [],
-  )
+  useEffect(() => {
+    const load = () =>
+      setHistory(parseSaleHistory(localStorage.getItem(HISTORY_STORAGE_KEY)))
+    load()
+    window.addEventListener('storage', load)
+    return () => window.removeEventListener('storage', load)
+  }, [])
   const save = async (next: SaleHistory) => {
     await withCriticalStorageLock(() =>
       localStorage.setItem(HISTORY_STORAGE_KEY, serializeSaleHistory(next)),
