@@ -324,6 +324,7 @@ export default function HistoryPage() {
                 </Button>
                 <Button
                   disabled={
+                    sending ||
                     !reason.trim() ||
                     !/^\d+(?:\.\d{1,2})?$/.test(amount) ||
                     !Number(amount) ||
