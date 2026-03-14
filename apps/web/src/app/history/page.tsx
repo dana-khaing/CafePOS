@@ -8,6 +8,7 @@ import {
   refundedTotal,
   validateRefundEvent,
   type Receipt,
+  type Refund,
   type SyncEvent,
 } from '@cafepos/domain'
 import { AppShell } from '@/components/app-shell'
@@ -63,12 +64,20 @@ export default function HistoryPage() {
       ),
     [history.receipts, locale, query],
   )
-  const refundsFor = (receipt: Receipt) => [
-    ...history.refunds.filter((entry) => entry.receiptId === receipt.id),
-    ...history.pendingRefunds
-      .map(validateRefundEvent)
-      .filter((entry) => entry.receiptId === receipt.id),
-  ]
+  const refundsByReceiptId = useMemo(() => {
+    const map = new Map<string, Refund[]>()
+    for (const entry of [
+      ...history.refunds,
+      ...history.pendingRefunds.map(validateRefundEvent),
+    ]) {
+      const list = map.get(entry.receiptId)
+      if (list) list.push(entry)
+      else map.set(entry.receiptId, [entry])
+    }
+    return map
+  }, [history.refunds, history.pendingRefunds])
+  const refundsFor = (receipt: Receipt) =>
+    refundsByReceiptId.get(receipt.id) ?? []
   const remaining = (receipt: Receipt) =>
     receipt.totals.gross.minor -
     refundedTotal(refundsFor(receipt), receipt.totals.gross.currency).minor
