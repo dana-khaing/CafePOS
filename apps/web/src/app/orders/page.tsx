@@ -115,6 +115,14 @@ export default function OrdersPage() {
   const [customizingProduct, setCustomizingProduct] = useState<Product | null>(
     null,
   )
+  const [tableNumberDraft, setTableNumberDraft] = useState('1')
+  useEffect(() => {
+    // Resync only on a genuine mode transition (e.g. the dining-mode
+    // buttons), not on every keystroke-driven order update below, or this
+    // would fight the user's own typing.
+    if (order.diningMode === 'table')
+      setTableNumberDraft(order.tableNumber ?? '1')
+  }, [order.diningMode])
   const [submission, setSubmission] = useState<
     'idle' | 'sending' | 'sent' | 'error'
   >('idle')
@@ -538,16 +546,16 @@ export default function OrdersPage() {
                   <span>{t('tableNumber')}</span>
                   <input
                     className="h-9 w-20 rounded-md border bg-background px-2"
-                    value={order.tableNumber}
+                    value={tableNumberDraft}
                     onChange={(event) => {
-                      if (event.target.value.trim())
-                        setOrder(
-                          setDraftOrderDiningMode(
-                            order,
-                            'table',
-                            event.target.value,
-                          ),
-                        )
+                      const value = event.target.value
+                      setTableNumberDraft(value)
+                      // A draft order requires a non-empty table number, so
+                      // only propagate once the field has real content -
+                      // but let the field itself go visibly empty while the
+                      // user is mid-edit instead of silently reverting it.
+                      if (value.trim())
+                        setOrder(setDraftOrderDiningMode(order, 'table', value))
                     }}
                   />
                 </label>
