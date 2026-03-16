@@ -26,17 +26,27 @@ export function ReceiptDialog({
 }) {
   const { locale, money, t } = useLocale()
   const dialogRef = useRef<HTMLDivElement>(null)
+  const returnFocusRef = useRef<HTMLElement | null>(null)
   const [settings, setSettings] = useState(defaultSettings)
   const amount = (minor: number) => money(minor / 100)
   useEffect(() => {
+    returnFocusRef.current = document.activeElement as HTMLElement
     dialogRef.current?.focus()
     try {
       setSettings(parseSettings(localStorage.getItem(SETTINGS_STORAGE_KEY)))
     } catch {
       // Safe defaults remain available if settings are corrupt.
     }
+    return () => {
+      returnFocusRef.current?.focus()
+    }
   }, [])
   const containFocus = (event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      onDone()
+      return
+    }
     if (event.key !== 'Tab') return
     const controls = dialogRef.current?.querySelectorAll<HTMLElement>('button')
     if (!controls?.length) return
