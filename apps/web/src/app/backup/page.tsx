@@ -18,6 +18,7 @@ export default function BackupPage() {
   )
   const busy = useRef(false)
   const exportBackup = async () => {
+    setStatus('idle')
     try {
       const backup = await createBackup(localStorage)
       const url = URL.createObjectURL(
