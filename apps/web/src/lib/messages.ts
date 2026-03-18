@@ -139,6 +139,7 @@ export const messages = {
     kitchenDescription: 'Prepare branch orders in the sequence they arrive.',
     refresh: 'Refresh',
     kitchenUnavailable: 'The branch kitchen queue is unavailable.',
+    ticketUpdateFailed: 'This ticket could not be updated. Safe to try again.',
     loadingKitchen: 'Loading kitchen tickets…',
     kitchenClear: 'All caught up. No active tickets.',
     queued: 'Queued',
@@ -418,6 +419,8 @@ export const messages = {
     kitchenDescription: 'จัดเตรียมออเดอร์ตามลำดับที่เข้ามา',
     refresh: 'รีเฟรช',
     kitchenUnavailable: 'ไม่สามารถเชื่อมต่อคิวครัวของสาขาได้',
+    ticketUpdateFailed:
+      'ไม่สามารถอัปเดตตั๋วนี้ได้ ลองใหม่อีกครั้งได้อย่างปลอดภัย',
     loadingKitchen: 'กำลังโหลดรายการครัว…',
     kitchenClear: 'จัดการครบแล้ว ไม่มีรายการค้าง',
     queued: 'รอทำ',
