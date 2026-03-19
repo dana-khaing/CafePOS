@@ -16,6 +16,7 @@ export default function BackupPage() {
   const [status, setStatus] = useState<'idle' | 'error' | 'ready' | 'restored'>(
     'idle',
   )
+  const [errorMessage, setErrorMessage] = useState('')
   const busy = useRef(false)
   const exportBackup = async () => {
     setStatus('idle')
@@ -31,12 +32,14 @@ export default function BackupPage() {
       anchor.download = `cafepos-backup-${backup.createdAt.slice(0, 10)}.json`
       anchor.click()
       setTimeout(() => URL.revokeObjectURL(url), 1000)
-    } catch {
+    } catch (caught) {
+      setErrorMessage(caught instanceof Error ? caught.message : '')
       setStatus('error')
     }
   }
   const selectFile = async (file: File | undefined) => {
     if (!file) {
+      setErrorMessage(t('noBackupFileChosen'))
       setStatus('error')
       return
     }
@@ -46,8 +49,9 @@ export default function BackupPage() {
       )
       setCandidate(backup)
       setStatus('ready')
-    } catch {
+    } catch (caught) {
       setCandidate(null)
+      setErrorMessage(caught instanceof Error ? caught.message : '')
       setStatus('error')
     }
   }
@@ -60,7 +64,8 @@ export default function BackupPage() {
       setStatus('restored')
       setCandidate(null)
       setPin('')
-    } catch {
+    } catch (caught) {
+      setErrorMessage(caught instanceof Error ? caught.message : '')
       setStatus('error')
     } finally {
       busy.current = false
@@ -76,7 +81,7 @@ export default function BackupPage() {
             role="alert"
             className="mt-4 rounded-md bg-destructive/10 p-3 text-destructive"
           >
-            {t('backupError')}
+            {errorMessage || t('backupError')}
           </p>
         )}
         {status === 'restored' && (
