@@ -141,6 +141,7 @@ export const messages = {
     kitchenUnavailable: 'The branch kitchen queue is unavailable.',
     ticketUpdateFailed: 'This ticket could not be updated. Safe to try again.',
     loadingKitchen: 'Loading kitchen tickets…',
+    loadingReports: 'Loading reports…',
     kitchenClear: 'All caught up. No active tickets.',
     queued: 'Queued',
     completed: 'Completed',
@@ -423,6 +424,7 @@ export const messages = {
     ticketUpdateFailed:
       'ไม่สามารถอัปเดตตั๋วนี้ได้ ลองใหม่อีกครั้งได้อย่างปลอดภัย',
     loadingKitchen: 'กำลังโหลดรายการครัว…',
+    loadingReports: 'กำลังโหลดรายงาน…',
     kitchenClear: 'จัดการครบแล้ว ไม่มีรายการค้าง',
     queued: 'รอทำ',
     completed: 'เสร็จสิ้น',
