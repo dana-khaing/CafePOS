@@ -17,8 +17,14 @@ export default function BackupPage() {
     'idle',
   )
   const [errorMessage, setErrorMessage] = useState('')
-  const busy = useRef(false)
+  const [exporting, setExporting] = useState(false)
+  const [restoring, setRestoring] = useState(false)
+  const exportingRef = useRef(false)
+  const restoringRef = useRef(false)
   const exportBackup = async () => {
+    if (exportingRef.current) return
+    exportingRef.current = true
+    setExporting(true)
     setStatus('idle')
     try {
       const backup = await createBackup(localStorage)
@@ -35,6 +41,9 @@ export default function BackupPage() {
     } catch (caught) {
       setErrorMessage(caught instanceof Error ? caught.message : '')
       setStatus('error')
+    } finally {
+      exportingRef.current = false
+      setExporting(false)
     }
   }
   const selectFile = async (file: File | undefined) => {
@@ -56,8 +65,9 @@ export default function BackupPage() {
     }
   }
   const restore = async () => {
-    if (!candidate || busy.current) return
-    busy.current = true
+    if (!candidate || restoringRef.current) return
+    restoringRef.current = true
+    setRestoring(true)
     try {
       await verifyManagerPin(pin)
       await restoreBackup(localStorage, candidate)
@@ -68,7 +78,8 @@ export default function BackupPage() {
       setErrorMessage(caught instanceof Error ? caught.message : '')
       setStatus('error')
     } finally {
-      busy.current = false
+      restoringRef.current = false
+      setRestoring(false)
     }
   }
   return (
@@ -102,7 +113,11 @@ export default function BackupPage() {
               <p className="mt-2 text-sm text-muted-foreground">
                 {t('exportBackupDescription')}
               </p>
-              <Button className="mt-5" onClick={() => void exportBackup()}>
+              <Button
+                className="mt-5"
+                disabled={exporting}
+                onClick={() => void exportBackup()}
+              >
                 {t('downloadBackup')}
               </Button>
             </CardContent>
@@ -152,7 +167,7 @@ export default function BackupPage() {
                   <Button
                     variant="destructive"
                     className="mt-4"
-                    disabled={pin.length < 4}
+                    disabled={pin.length < 4 || restoring}
                     onClick={() => void restore()}
                   >
                     {t('confirmRestore')}
