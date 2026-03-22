@@ -112,6 +112,11 @@ export default function KitchenPage() {
             {t('kitchenClear')}
           </div>
         )}
+        {status === 'ready' && (
+          <div aria-live="polite" className="sr-only">
+            {tickets.length} {t('activeTickets')}
+          </div>
+        )}
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {tickets.map((ticket) => (
             <Card
