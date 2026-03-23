@@ -1,18 +1,8 @@
 'use client'
 
-import {
-  BarChart3,
-  BookOpen,
-  Coffee,
-  LayoutDashboard,
-  ReceiptText,
-  PackageOpen,
-  Settings,
-  Utensils,
-} from 'lucide-react'
+import { Coffee } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import type { Route } from 'next'
 import type { ReactNode } from 'react'
 
 import { ConnectivityChip } from '@/components/connectivity-chip'
@@ -20,74 +10,7 @@ import { LanguageSwitcher } from '@/components/language-switcher'
 import { useLocale } from '@/components/locale-provider'
 import { MobileNavigation } from '@/components/mobile-navigation'
 import { Button } from '@/components/ui/button'
-
-const navigation: ReadonlyArray<{
-  label:
-    | 'overview'
-    | 'menu'
-    | 'orders'
-    | 'history'
-    | 'shifts'
-    | 'kitchen'
-    | 'inventory'
-    | 'backup'
-    | 'reports'
-    | 'settings'
-  href: Route
-  icon: typeof LayoutDashboard
-  available: boolean
-}> = [
-  { label: 'overview', href: '/', icon: LayoutDashboard, available: true },
-  { label: 'menu', href: '/menu', icon: BookOpen, available: true },
-  {
-    label: 'inventory',
-    href: '/inventory' as Route,
-    icon: PackageOpen,
-    available: true,
-  },
-  {
-    label: 'orders',
-    href: '/orders' as Route,
-    icon: ReceiptText,
-    available: true,
-  },
-  {
-    label: 'history',
-    href: '/history' as Route,
-    icon: ReceiptText,
-    available: true,
-  },
-  {
-    label: 'shifts',
-    href: '/shifts' as Route,
-    icon: ReceiptText,
-    available: true,
-  },
-  {
-    label: 'kitchen',
-    href: '/kitchen' as Route,
-    icon: Utensils,
-    available: true,
-  },
-  {
-    label: 'reports',
-    href: '/reports' as Route,
-    icon: BarChart3,
-    available: true,
-  },
-  {
-    label: 'backup',
-    href: '/backup' as Route,
-    icon: Settings,
-    available: true,
-  },
-  {
-    label: 'settings',
-    href: '/settings' as Route,
-    icon: Settings,
-    available: true,
-  },
-]
+import { navigation } from '@/lib/navigation'
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { t } = useLocale()
