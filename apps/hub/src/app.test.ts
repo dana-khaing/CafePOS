@@ -312,6 +312,80 @@ describe('branch hub health endpoint', () => {
     expect(denied.statusCode).toBe(403)
   })
 
+  it('rolls back a refund from the journal when queuing it for sync fails', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'cafepos-refund-rollback-'))
+    const store = new FileOutboxStore(join(directory, 'outbox.json'))
+    const refundStore = new FileRefundStore(join(directory, 'refunds.json'))
+    const app = createHubApp(config, store, undefined, refundStore)
+    apps.push(app)
+    const order = {
+      id: 'order-refund-rollback',
+      currency: 'THB' as const,
+      diningMode: 'counter' as const,
+      lines: [
+        {
+          id: 'line-1',
+          itemId: 'latte',
+          name: 'Latte',
+          quantity: 1,
+          unitPrice: money(12000),
+          modifiers: [],
+          taxRate: {
+            id: 'vat',
+            name: 'VAT',
+            basisPoints: 700,
+            mode: 'inclusive' as const,
+          },
+        },
+      ],
+    }
+    const session = addPaymentTender(
+      createPaymentSession('payment-refund-rollback', order.id, money(12000)),
+      { id: 'cash-1', method: 'cash', amount: money(12000) },
+    )
+    const receipt = createReceipt(
+      order,
+      completePayment(session, {
+        branchId: config.branchId,
+        actorId: 'cashier-1',
+        completedAt: '2026-01-15T09:00:00.000Z',
+        eventId: 'payment-refund-rollback-event',
+      }).payment,
+    )
+    const { refund, event } = createRefund(receipt, [], {
+      id: 'refund-rollback-1',
+      actorId: 'manager-1',
+      actorRole: 'manager',
+      reason: 'Customer request',
+      amount: money(5000),
+      createdAt: '2026-01-15T10:00:00.000Z',
+    })
+    // Pre-occupy the same aggregate slot in the outbox so this refund's own
+    // enqueue() call fails after refunds.accept() has already succeeded,
+    // exercising the rollback path.
+    await store.enqueue(
+      {
+        ...event,
+        id: 'refund:blocker:v1',
+        entityId: event.entityId,
+        aggregateVersion: event.aggregateVersion,
+      },
+      '2026-01-15T09:59:00.000Z',
+    )
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/refunds',
+      headers: {
+        authorization: `Bearer ${config.branchToken}`,
+        'x-manager-pin': config.refundApprovalPin,
+      },
+      payload: { receipt, event },
+    })
+    expect(response.statusCode).toBe(400)
+    const reaccepted = await refundStore.accept(receipt, event)
+    expect(reaccepted).toEqual({ refund, created: true })
+  })
+
   it('verifies manager approval without exposing the configured pin', async () => {
     const app = createHubApp(config)
     apps.push(app)

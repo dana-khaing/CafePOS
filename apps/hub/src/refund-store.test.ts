@@ -68,9 +68,10 @@ describe('refund journal', () => {
       createdAt: '2026-01-15T11:00:00.000Z',
     })
     await store.accept(receipt, first.event)
-    await expect(store.accept(receipt, first.event)).resolves.toEqual(
-      first.refund,
-    )
+    await expect(store.accept(receipt, first.event)).resolves.toEqual({
+      refund: first.refund,
+      created: false,
+    })
     await expect(store.accept(receipt, forgedSecond.event)).rejects.toThrow(
       'exceeds',
     )
@@ -89,5 +90,23 @@ describe('refund journal', () => {
         first.event,
       ),
     ).rejects.toThrow('collision')
+  })
+
+  it('reports created:true only for a newly accepted refund, and remove() undoes it', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'cafepos-refund-store-'))
+    const store = new FileRefundStore(join(directory, 'refunds.json'))
+    const first = createRefund(receipt, [], {
+      id: 'one',
+      actorId: 'manager',
+      actorRole: 'manager',
+      reason: 'First',
+      amount: money(7000),
+      createdAt: '2026-01-15T10:00:00.000Z',
+    })
+    const accepted = await store.accept(receipt, first.event)
+    expect(accepted).toEqual({ refund: first.refund, created: true })
+    await store.remove(first.refund.id)
+    const reaccepted = await store.accept(receipt, first.event)
+    expect(reaccepted).toEqual({ refund: first.refund, created: true })
   })
 })
