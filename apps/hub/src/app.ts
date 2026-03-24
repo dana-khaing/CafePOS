@@ -124,8 +124,16 @@ export function createHubApp(
       const refund = validateRefundEvent(event)
       if (refund.branchId !== config.branchId)
         return reply.code(400).send({ error: 'Invalid refund branch' })
-      await refunds.accept(command.receipt, event)
-      await outbox.enqueue(event, event.occurredAt)
+      const { refund: accepted, created } = await refunds.accept(
+        command.receipt,
+        event,
+      )
+      try {
+        await outbox.enqueue(event, event.occurredAt)
+      } catch (error) {
+        if (created) await refunds.remove(accepted.id)
+        throw error
+      }
       return reply.code(202).send({ status: 'queued', eventId: event.id })
     } catch (error) {
       return reply.code(400).send({

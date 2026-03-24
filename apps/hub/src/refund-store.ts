@@ -91,7 +91,7 @@ export class FileRefundStore {
       if (existingRefund) {
         if (JSON.stringify(existingRefund) !== JSON.stringify(refund))
           throw new TypeError('Refund identity collision')
-        return existingRefund
+        return { refund: existingRefund, created: false }
       }
       const previous = journal.refunds.filter(
         (entry) => entry.receiptId === receipt.id,
@@ -109,7 +109,16 @@ export class FileRefundStore {
       if (!existingReceipt) journal.receipts.push(receipt)
       journal.refunds.push(refund)
       await this.#write(journal)
-      return refund
+      return { refund, created: true }
+    })
+  }
+  remove(refundId: string) {
+    return this.#serialized(async () => {
+      const journal = await this.#read()
+      await this.#write({
+        ...journal,
+        refunds: journal.refunds.filter((entry) => entry.id !== refundId),
+      })
     })
   }
 }
