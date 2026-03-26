@@ -123,6 +123,77 @@ describe('shift storage', () => {
         ?.movements,
     ).toEqual([])
   })
+  it('does not double-count a refund retried after its shift is archived', () => {
+    const current = openCashShift({
+      id: 'shift',
+      branchId: 'branch-riverside',
+      actorId: 'manager',
+      actorRole: 'manager',
+      openedAt: '2026-01-16T08:00:00Z',
+      openingFloat: money(50000),
+    })
+    const order = {
+      id: 'retry-order',
+      currency: 'THB' as const,
+      diningMode: 'counter' as const,
+      lines: [
+        {
+          id: 'line',
+          itemId: 'latte',
+          name: 'Latte',
+          quantity: 1,
+          unitPrice: money(12000),
+          modifiers: [],
+          taxRate: {
+            id: 'vat',
+            name: 'VAT',
+            basisPoints: 700,
+            mode: 'inclusive' as const,
+          },
+        },
+      ],
+    }
+    const paid = addPaymentTender(
+      createPaymentSession('retry-payment', order.id, money(12000)),
+      { id: 'cash', method: 'cash', amount: money(12000) },
+    )
+    const receipt = createReceipt(
+      order,
+      completePayment(paid, {
+        branchId: 'branch-riverside',
+        actorId: 'cashier',
+        completedAt: '2026-01-16T09:00:00Z',
+        eventId: 'retry-event',
+      }).payment,
+    )
+    const refund = createRefund(receipt, [], {
+      id: 'retry-refund',
+      actorId: 'manager',
+      actorRole: 'manager',
+      reason: 'Return',
+      amount: money(2000),
+      createdAt: '2026-01-16T10:00:00Z',
+    }).refund
+    const ledger = recordCashRefund({ current, archive: [] }, receipt, refund)
+    const closed = closeCashShift(ledger.current!, {
+      actorId: 'manager',
+      actorRole: 'manager',
+      closedAt: '2026-01-16T11:00:00Z',
+      countedCash: money(60000),
+    })
+    const next = openCashShift({
+      id: 'next-shift',
+      branchId: 'branch-riverside',
+      actorId: 'manager',
+      actorRole: 'manager',
+      openedAt: '2026-01-16T12:00:00Z',
+      openingFloat: money(50000),
+    })
+    expect(
+      recordCashRefund({ current: next, archive: [closed] }, receipt, refund)
+        .current?.movements,
+    ).toEqual([])
+  })
   it('does not remove card-only receipts from the cash drawer', () => {
     const current = openCashShift({
       id: 'shift',
