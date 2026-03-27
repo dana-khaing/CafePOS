@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { BarChart3, Banknote, CreditCard, QrCode } from 'lucide-react'
 import { buildSalesReport } from '@cafepos/domain'
 import { AppShell } from '@/components/app-shell'
@@ -28,13 +28,20 @@ export default function ReportsPage() {
     dateInTimezone(new Date(), defaultSettings().timezone),
   )
   const [loaded, setLoaded] = useState(false)
+  const dateInitializedRef = useRef(false)
   useEffect(() => {
     const load = () => {
       setHistory(parseSaleHistory(localStorage.getItem(HISTORY_STORAGE_KEY)))
       try {
         const next = parseSettings(localStorage.getItem(SETTINGS_STORAGE_KEY))
         setSettings(next)
-        setDate(dateInTimezone(new Date(), next.timezone))
+        // Only default the business date on the initial load - a later
+        // storage event from another tab (a sale, a shift, a menu edit)
+        // must not snap the user's picked date back to today.
+        if (!dateInitializedRef.current) {
+          setDate(dateInTimezone(new Date(), next.timezone))
+          dateInitializedRef.current = true
+        }
       } catch {
         // Keep validated defaults if settings storage is corrupt.
       }
