@@ -201,40 +201,56 @@ export default function OrdersPage() {
   }, [])
 
   useEffect(() => {
-    const fallback = emptyOrder()
-    try {
-      const restored = parseStoredOrder(
-        localStorage.getItem(ORDER_STORAGE_KEY),
-        fallback,
-      )
-      const presetMode = new URLSearchParams(window.location.search).get('mode')
-      const withPresetMode =
-        (presetMode === 'table' ||
-          presetMode === 'takeaway' ||
-          presetMode === 'counter') &&
-        presetMode !== restored.diningMode
-          ? setDraftOrderDiningMode(
-              restored,
-              presetMode,
-              presetMode === 'table'
-                ? (restored.tableNumber ?? '1')
-                : undefined,
-            )
-          : restored
-      setOrder(withPresetMode)
-      const pending = parsePendingOrderSubmission(
-        localStorage.getItem(PENDING_ORDER_SUBMISSION_KEY),
-      )
-      if (pending?.entityId === restored.id) {
-        pendingEventRef.current = pending
-        setSubmission('error')
+    const load = () => {
+      const fallback = emptyOrder()
+      try {
+        const restored = parseStoredOrder(
+          localStorage.getItem(ORDER_STORAGE_KEY),
+          fallback,
+        )
+        setOrder(restored)
+        const pending = parsePendingOrderSubmission(
+          localStorage.getItem(PENDING_ORDER_SUBMISSION_KEY),
+        )
+        if (pending?.entityId === restored.id) {
+          pendingEventRef.current = pending
+          setSubmission('error')
+        } else {
+          pendingEventRef.current = null
+        }
+        setPayment(
+          parseStoredPayment(localStorage.getItem(PAYMENT_STORAGE_KEY)),
+        )
+        setReceipt(
+          parseStoredReceipt(localStorage.getItem(RECEIPT_STORAGE_KEY)),
+        )
+      } catch {
+        setOrder(fallback)
       }
-      setPayment(parseStoredPayment(localStorage.getItem(PAYMENT_STORAGE_KEY)))
-      setReceipt(parseStoredReceipt(localStorage.getItem(RECEIPT_STORAGE_KEY)))
-    } catch {
-      setOrder(fallback)
+    }
+    load()
+    // The dining-mode preset from the URL is a one-time entry concern, not
+    // an ongoing sync concern - applying it again on a later storage event
+    // would fight with a legitimate cross-tab dining-mode change.
+    const presetMode = new URLSearchParams(window.location.search).get('mode')
+    if (
+      presetMode === 'table' ||
+      presetMode === 'takeaway' ||
+      presetMode === 'counter'
+    ) {
+      setOrder((current) =>
+        presetMode !== current.diningMode
+          ? setDraftOrderDiningMode(
+              current,
+              presetMode,
+              presetMode === 'table' ? (current.tableNumber ?? '1') : undefined,
+            )
+          : current,
+      )
     }
     setStorageReady(true)
+    window.addEventListener('storage', load)
+    return () => window.removeEventListener('storage', load)
   }, [])
 
   useEffect(() => {
