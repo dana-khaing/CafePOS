@@ -39,6 +39,7 @@ export async function enqueueSubmittedOrder(
       authorization: `Bearer ${branchToken}`,
     },
     body: JSON.stringify(event),
+    signal: AbortSignal.timeout(2_000),
   })
   if (!response.ok)
     throw new Error(`Branch hub rejected order (${response.status})`)

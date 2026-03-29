@@ -14,6 +14,7 @@ export async function enqueuePayment(
       authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(event),
+    signal: AbortSignal.timeout(2_000),
   })
   if (!response.ok)
     throw new Error(`Payment queue rejected (${response.status})`)
