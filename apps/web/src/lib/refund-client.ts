@@ -23,6 +23,7 @@ export async function enqueueRefund(
       'x-manager-pin': managerPin,
     },
     body: JSON.stringify({ receipt, event }),
+    signal: AbortSignal.timeout(2_000),
   })
   if (!response.ok)
     throw new Error(`Refund queue rejected (${response.status})`)

@@ -9,6 +9,7 @@ export async function verifyManagerPin(
   const response = await fetcher(`${hubUrl}/v1/manager/verify`, {
     method: 'POST',
     headers: { authorization: `Bearer ${token}`, 'x-manager-pin': pin },
+    signal: AbortSignal.timeout(2_000),
   })
   if (!response.ok)
     throw new Error(`Manager approval rejected (${response.status})`)
