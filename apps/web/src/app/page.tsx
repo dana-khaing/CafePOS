@@ -74,6 +74,7 @@ export default function HomePage() {
   const [settings, setSettings] = useState(defaultSettings())
   const [shiftLedger, setShiftLedger] = useState<ShiftLedger>(emptyShiftLedger)
   const [settingsError, setSettingsError] = useState(false)
+  const [shiftLedgerError, setShiftLedgerError] = useState(false)
   const [now, setNow] = useState(() => Date.now())
   const [businessDate, setBusinessDate] = useState(() =>
     dateInTimezone(new Date(), defaultSettings().timezone),
@@ -82,7 +83,17 @@ export default function HomePage() {
   useEffect(() => {
     const load = () => {
       setHistory(parseSaleHistory(localStorage.getItem(HISTORY_STORAGE_KEY)))
-      setShiftLedger(parseShiftLedger(localStorage.getItem(SHIFT_STORAGE_KEY)))
+      try {
+        setShiftLedger(
+          parseShiftLedger(localStorage.getItem(SHIFT_STORAGE_KEY)),
+        )
+        setShiftLedgerError(false)
+      } catch {
+        // Keep the empty ledger if shift storage is corrupt, but let the
+        // operator know the current-shift card may be wrong.
+        setShiftLedger(emptyShiftLedger())
+        setShiftLedgerError(true)
+      }
       try {
         const next = parseSettings(localStorage.getItem(SETTINGS_STORAGE_KEY))
         setSettings(next)
@@ -184,6 +195,14 @@ export default function HomePage() {
             className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
           >
             {t('settingsDataReset')}
+          </p>
+        )}
+        {shiftLedgerError && (
+          <p
+            role="alert"
+            className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
+          >
+            {t('shiftDataReset')}
           </p>
         )}
         <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
