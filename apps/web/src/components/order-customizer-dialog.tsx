@@ -65,10 +65,11 @@ export function OrderCustomizerDialog({
       return
     }
     if (event.key !== 'Tab') return
-    const controls =
-      dialogRef.current?.querySelectorAll<HTMLElement>(
+    const controls = [
+      ...(dialogRef.current?.querySelectorAll<HTMLElement>(
         'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-      ) ?? []
+      ) ?? []),
+    ].filter((entry) => !entry.hasAttribute('disabled'))
     if (!controls.length) return
     const first = controls[0]!
     const last = controls[controls.length - 1]!

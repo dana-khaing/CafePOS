@@ -110,10 +110,11 @@ export default function InventoryPage() {
   useEffect(() => {
     if (!selected) return
     returnFocus.current = document.activeElement as HTMLElement
-    const focusable = () => [
-      ...(dialogRef.current?.querySelectorAll<HTMLElement>('input, button') ??
-        []),
-    ]
+    const focusable = () =>
+      [
+        ...(dialogRef.current?.querySelectorAll<HTMLElement>('input, button') ??
+          []),
+      ].filter((entry) => !entry.hasAttribute('disabled'))
     focusable()[0]?.focus()
     const keydown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !busy.current) setSelected(null)
