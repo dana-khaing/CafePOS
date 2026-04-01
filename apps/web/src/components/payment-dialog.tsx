@@ -1,6 +1,6 @@
 'use client'
 
-import { CreditCard, QrCode, WalletCards } from 'lucide-react'
+import { CreditCard, QrCode, WalletCards, X } from 'lucide-react'
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import {
   addPaymentTender,
@@ -29,9 +29,11 @@ import { withCriticalStorageLock } from '@/lib/storage-lock'
 export function PaymentDialog({
   initial,
   onComplete,
+  onDismiss,
 }: {
   initial: PaymentSession
   onComplete: (payment: CompletedPayment) => Promise<void>
+  onDismiss: () => void
 }) {
   const { money: formatMoney, t } = useLocale()
   const [session, setSession] = useState(initial)
@@ -46,12 +48,17 @@ export function PaymentDialog({
   const dialogRef = useRef<HTMLDivElement>(null)
   const summary = paymentSummary(session)
   const cashMinor = Math.round(Number(cash) * 100)
+  const locked = busy || session.status === 'paid'
 
   useEffect(() => {
     dialogRef.current?.focus()
   }, [])
 
   const containFocus = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape') {
+      if (!locked) onDismiss()
+      return
+    }
     if (event.key !== 'Tab') return
     const controls = [
       ...(dialogRef.current?.querySelectorAll<HTMLElement>(
@@ -148,7 +155,6 @@ export function PaymentDialog({
     }
   }
 
-  const locked = busy || session.status === 'paid'
   return (
     <div
       className="fixed inset-0 z-50 grid place-items-center bg-background/80 p-4 backdrop-blur-sm"
@@ -160,12 +166,25 @@ export function PaymentDialog({
       onKeyDown={containFocus}
     >
       <div className="w-full max-w-lg rounded-2xl border bg-card p-6 shadow-2xl">
-        <h2 id="payment-title" className="text-2xl font-semibold">
-          {t('takePayment')}
-        </h2>
-        <p className="mt-1 text-muted-foreground">
-          {t('order')} {session.orderId}
-        </p>
+        <header className="flex items-start justify-between gap-4">
+          <div>
+            <h2 id="payment-title" className="text-2xl font-semibold">
+              {t('takePayment')}
+            </h2>
+            <p className="mt-1 text-muted-foreground">
+              {t('order')} {session.orderId}
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onDismiss}
+            disabled={locked}
+            aria-label={t('cancel')}
+          >
+            <X aria-hidden="true" />
+          </Button>
+        </header>
         <div className="my-6 rounded-xl bg-muted p-5">
           <p className="text-sm text-muted-foreground">{t('remaining')}</p>
           <p className="mt-1 text-3xl font-bold">

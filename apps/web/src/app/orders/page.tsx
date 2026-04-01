@@ -383,6 +383,20 @@ export default function OrdersPage() {
 
   const submit = async () => {
     if (submittingRef.current) return
+    // The order was already sent to the kitchen and a payment session
+    // already exists in storage - dismissing PaymentDialog doesn't cancel
+    // that, so reopen it instead of resubmitting (a resubmit would build a
+    // fresh event with a new timestamp and collide with the one already
+    // queued on the hub).
+    if (submission === 'sent') {
+      const existing = parseStoredPayment(
+        localStorage.getItem(PAYMENT_STORAGE_KEY),
+      )
+      if (existing) {
+        setPayment(existing)
+        return
+      }
+    }
     submittingRef.current = true
     setSubmission('sending')
     try {
@@ -441,6 +455,7 @@ export default function OrdersPage() {
       {payment && (
         <PaymentDialog
           initial={payment}
+          onDismiss={() => setPayment(null)}
           onComplete={async (completedPayment) => {
             const completedReceipt = createReceipt(order, completedPayment)
             await stageInventoryReceipt(localStorage, completedReceipt)
