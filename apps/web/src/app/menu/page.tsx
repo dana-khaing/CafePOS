@@ -281,6 +281,7 @@ export default function MenuPage() {
         setMenuItemVisibility(current, id, available),
       )
       setMenu(next)
+      setNotice({ kind: 'saved', message: t('itemAvailabilityUpdated') })
     } catch (error) {
       setNotice({
         kind: 'error',
