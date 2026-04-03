@@ -79,6 +79,7 @@ export function createHubApp(
       }
       return reply.code(202).send({ status: 'queued', eventId: event.id })
     } catch (error) {
+      request.log.error({ err: error }, 'Order submission failed')
       return reply.code(400).send({
         error: error instanceof Error ? error.message : 'Invalid order event',
       })
@@ -99,6 +100,7 @@ export function createHubApp(
       await outbox.enqueue(event, event.occurredAt)
       return reply.code(202).send({ status: 'queued', eventId: event.id })
     } catch (error) {
+      request.log.error({ err: error }, 'Payment submission failed')
       return reply.code(400).send({
         error: error instanceof Error ? error.message : 'Invalid payment event',
       })
@@ -136,6 +138,7 @@ export function createHubApp(
       }
       return reply.code(202).send({ status: 'queued', eventId: event.id })
     } catch (error) {
+      request.log.error({ err: error }, 'Refund submission failed')
       return reply.code(400).send({
         error: error instanceof Error ? error.message : 'Invalid refund event',
       })
@@ -181,6 +184,7 @@ export function createHubApp(
         ),
       }
     } catch (error) {
+      request.log.error({ err: error }, 'Kitchen ticket advance failed')
       return reply.code(409).send({
         error: error instanceof Error ? error.message : 'Kitchen update failed',
       })
