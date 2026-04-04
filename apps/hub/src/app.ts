@@ -11,7 +11,10 @@ import {
 
 import type { HubConfig } from './config.js'
 import type { FileOutboxStore } from './outbox-store.js'
-import type { FileKitchenStore } from './kitchen-store.js'
+import {
+  KitchenTicketNotFoundError,
+  type FileKitchenStore,
+} from './kitchen-store.js'
 import type { FileRefundStore } from './refund-store.js'
 
 const startedAt = new Date()
@@ -185,6 +188,9 @@ export function createHubApp(
       }
     } catch (error) {
       request.log.error({ err: error }, 'Kitchen ticket advance failed')
+      if (error instanceof KitchenTicketNotFoundError) {
+        return reply.code(404).send({ error: error.message })
+      }
       return reply.code(409).send({
         error: error instanceof Error ? error.message : 'Kitchen update failed',
       })
