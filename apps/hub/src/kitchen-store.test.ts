@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { money, submitDraftOrder } from '@cafepos/domain'
-import { FileKitchenStore } from './kitchen-store'
+import { FileKitchenStore, KitchenTicketNotFoundError } from './kitchen-store'
 
 const submitted = submitDraftOrder(
   {
@@ -54,5 +54,13 @@ describe('file kitchen store', () => {
     )
     await store.advance('kitchen:order-1', '2026-01-12T10:03:00.000Z', 'ready')
     expect(await store.list()).toEqual([])
+  })
+
+  it('raises a distinct error for a ticket that does not exist', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'cafepos-kitchen-'))
+    const store = new FileKitchenStore(join(directory, 'kitchen.json'))
+    await expect(
+      store.advance('kitchen:missing', '2026-01-12T10:01:00.000Z', 'queued'),
+    ).rejects.toThrow(KitchenTicketNotFoundError)
   })
 })

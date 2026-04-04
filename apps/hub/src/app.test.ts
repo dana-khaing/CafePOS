@@ -174,6 +174,13 @@ describe('branch hub health endpoint', () => {
       payload: { expectedStatus: 'queued' },
     })
     expect(duplicateAdvance.statusCode).toBe(409)
+    const missingTicket = await app.inject({
+      method: 'POST',
+      url: '/v1/kitchen/tickets/kitchen%3Amissing/advance',
+      headers: { authorization: `Bearer ${config.branchToken}` },
+      payload: { expectedStatus: 'queued' },
+    })
+    expect(missingTicket.statusCode).toBe(404)
   })
 
   it('authenticates and queues validated payment events', async () => {

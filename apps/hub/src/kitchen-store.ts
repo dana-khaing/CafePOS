@@ -13,6 +13,8 @@ import {
 
 const operations = new Map<string, Promise<void>>()
 
+export class KitchenTicketNotFoundError extends Error {}
+
 export class FileKitchenStore {
   readonly #path: string
   constructor(path: string) {
@@ -82,7 +84,10 @@ export class FileKitchenStore {
     return this.#serialized(async () => {
       const tickets = await this.#read()
       const ticket = tickets.find((entry) => entry.id === ticketId)
-      if (!ticket) throw new Error(`Kitchen ticket not found: ${ticketId}`)
+      if (!ticket)
+        throw new KitchenTicketNotFoundError(
+          `Kitchen ticket not found: ${ticketId}`,
+        )
       const updated = advanceKitchenTicket(ticket, updatedAt, expectedStatus)
       await this.#write(
         tickets.map((entry) => (entry.id === ticketId ? updated : entry)),
