@@ -41,6 +41,11 @@ export class FileOutboxStore {
     return result
   }
 
+  // Deliberately re-parses and re-validates the whole outbox from disk on
+  // every call rather than caching - same choice every storage layer in
+  // this app makes (frontend and backend). Not an unbounded-growth risk:
+  // acknowledgeEvents() already removes acknowledged items, so only
+  // pending/inflight entries ever persist here.
   async #read(): Promise<readonly OutboxItem[]> {
     try {
       const parsed: unknown = JSON.parse(await readFile(this.#path, 'utf8'))
