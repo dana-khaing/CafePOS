@@ -31,6 +31,11 @@ export class FileRefundStore {
     )
     return result
   }
+  // Deliberately re-parses and re-validates the whole journal from disk on
+  // every call rather than caching - same choice every storage layer in
+  // this app makes (frontend and backend), so a single-process write can
+  // never drift from what's actually on disk. This journal is a permanent
+  // audit trail (refunds are never pruned), not an unbounded-growth risk.
   async #read(): Promise<RefundJournal> {
     try {
       const value = JSON.parse(
