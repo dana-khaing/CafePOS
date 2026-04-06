@@ -9,6 +9,7 @@ import {
   validateSubmittedOrderEvent,
 } from '@cafepos/domain'
 
+import { authenticatesBranch, authenticatesManagerPin } from './auth.js'
 import type { HubConfig } from './config.js'
 import type { FileOutboxStore } from './outbox-store.js'
 import {
@@ -56,7 +57,9 @@ export function createHubApp(
 
   app.post('/v1/orders', async (request, reply) => {
     if (!outbox) return reply.code(503).send({ error: 'Outbox unavailable' })
-    if (request.headers.authorization !== `Bearer ${config.branchToken}`) {
+    if (
+      !authenticatesBranch(request.headers.authorization, config.branchToken)
+    ) {
       return reply
         .code(401)
         .send({ error: 'Branch device authentication required' })
@@ -91,7 +94,7 @@ export function createHubApp(
 
   app.post('/v1/payments', async (request, reply) => {
     if (!outbox) return reply.code(503).send({ error: 'Outbox unavailable' })
-    if (request.headers.authorization !== `Bearer ${config.branchToken}`)
+    if (!authenticatesBranch(request.headers.authorization, config.branchToken))
       return reply
         .code(401)
         .send({ error: 'Branch device authentication required' })
@@ -114,11 +117,16 @@ export function createHubApp(
     if (!outbox) return reply.code(503).send({ error: 'Outbox unavailable' })
     if (!refunds)
       return reply.code(503).send({ error: 'Refund journal unavailable' })
-    if (request.headers.authorization !== `Bearer ${config.branchToken}`)
+    if (!authenticatesBranch(request.headers.authorization, config.branchToken))
       return reply
         .code(401)
         .send({ error: 'Branch device authentication required' })
-    if (request.headers['x-manager-pin'] !== config.refundApprovalPin)
+    if (
+      !authenticatesManagerPin(
+        request.headers['x-manager-pin'],
+        config.refundApprovalPin,
+      )
+    )
       return reply.code(403).send({ error: 'Manager approval required' })
     try {
       const command = request.body as {
@@ -149,17 +157,22 @@ export function createHubApp(
   })
 
   app.post('/v1/manager/verify', async (request, reply) => {
-    if (request.headers.authorization !== `Bearer ${config.branchToken}`)
+    if (!authenticatesBranch(request.headers.authorization, config.branchToken))
       return reply
         .code(401)
         .send({ error: 'Branch device authentication required' })
-    if (request.headers['x-manager-pin'] !== config.refundApprovalPin)
+    if (
+      !authenticatesManagerPin(
+        request.headers['x-manager-pin'],
+        config.refundApprovalPin,
+      )
+    )
       return reply.code(403).send({ error: 'Manager approval required' })
     return { approved: true }
   })
 
   app.get('/v1/kitchen/tickets', async (request, reply) => {
-    if (request.headers.authorization !== `Bearer ${config.branchToken}`)
+    if (!authenticatesBranch(request.headers.authorization, config.branchToken))
       return reply
         .code(401)
         .send({ error: 'Branch device authentication required' })
@@ -170,7 +183,7 @@ export function createHubApp(
     Params: { ticketId: string }
     Body: { expectedStatus?: string }
   }>('/v1/kitchen/tickets/:ticketId/advance', async (request, reply) => {
-    if (request.headers.authorization !== `Bearer ${config.branchToken}`)
+    if (!authenticatesBranch(request.headers.authorization, config.branchToken))
       return reply
         .code(401)
         .send({ error: 'Branch device authentication required' })
