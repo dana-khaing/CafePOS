@@ -21,8 +21,14 @@ export default function SettingsPage() {
   const [status, setStatus] = useState<'idle' | 'saved' | 'error'>('idle')
   const [errorMessage, setErrorMessage] = useState('')
   const busy = useRef(false)
+  const dirty = useRef(false)
   useEffect(() => {
     const load = () => {
+      // Another tab's write shouldn't clobber edits already in progress
+      // here - Menu/Inventory avoid this by keeping their edit-in-progress
+      // draft separate from the synced list; Settings binds the form
+      // directly to synced state, so it has to skip the sync instead.
+      if (dirty.current) return
       try {
         setSettings(parseSettings(localStorage.getItem(SETTINGS_STORAGE_KEY)))
       } catch {
@@ -37,6 +43,7 @@ export default function SettingsPage() {
     key: K,
     value: CafeSettings[K],
   ) => {
+    dirty.current = true
     setStatus('idle')
     setSettings((current) => ({ ...current, [key]: value }))
   }
@@ -47,6 +54,7 @@ export default function SettingsPage() {
     try {
       await verifyManagerPin(pin)
       await saveSettings(localStorage, settings)
+      dirty.current = false
       setPin('')
       setStatus('saved')
     } catch (caught) {
