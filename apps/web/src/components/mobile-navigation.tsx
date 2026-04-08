@@ -79,12 +79,6 @@ export function MobileNavigation() {
             ),
           )}
         </nav>
-        <div className="mt-auto rounded-lg bg-muted p-3 text-sm">
-          <span className="font-medium">{t('branchHub')}</span>
-          <span className="mt-1 block text-muted-foreground">
-            {t('lastSync')}
-          </span>
-        </div>
       </SheetContent>
     </Sheet>
   )

@@ -63,13 +63,6 @@ export function AppShell({ children }: { children: ReactNode }) {
             ),
           )}
         </nav>
-
-        <div className="mt-auto rounded-lg bg-muted p-3 text-sm">
-          <span className="font-medium">{t('branchHub')}</span>
-          <span className="mt-1 block text-muted-foreground">
-            {t('lastSync')}
-          </span>
-        </div>
       </aside>
 
       <div className="min-w-0">
