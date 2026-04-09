@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { mkdtemp } from 'node:fs/promises'
+import { mkdtemp, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -81,6 +81,36 @@ describe('branch hub health endpoint', () => {
       status: 'ready',
       outbox: { pending: 0, inflight: 0, total: 0 },
     })
+  })
+
+  it('returns the app error shape (not the default Fastify one) when the outbox journal is corrupt', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'cafepos-sync-status-'))
+    const outboxPath = join(directory, 'outbox.json')
+    await writeFile(outboxPath, 'not json')
+    const store = new FileOutboxStore(outboxPath)
+    const app = createHubApp(config, store)
+    apps.push(app)
+
+    const response = await app.inject({ method: 'GET', url: '/v1/sync/status' })
+    expect(response.statusCode).toBe(500)
+    expect(response.json()).toHaveProperty('error')
+  })
+
+  it('returns the app error shape (not the default Fastify one) when the kitchen journal is corrupt', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'cafepos-kitchen-list-'))
+    const kitchenPath = join(directory, 'kitchen.json')
+    await writeFile(kitchenPath, 'not json')
+    const kitchen = new FileKitchenStore(kitchenPath)
+    const app = createHubApp(config, undefined, kitchen)
+    apps.push(app)
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/kitchen/tickets',
+      headers: { authorization: `Bearer ${config.branchToken}` },
+    })
+    expect(response.statusCode).toBe(500)
+    expect(response.json()).toHaveProperty('error')
   })
 
   it('validates and atomically queues submitted order events', async () => {
