@@ -48,12 +48,22 @@ export function createHubApp(
     uptimeSeconds: Math.floor(process.uptime()),
   }))
 
-  app.get('/v1/sync/status', async () => ({
-    status: 'ready',
-    outbox: outbox
-      ? await outbox.summary()
-      : { pending: 0, inflight: 0, total: 0 },
-  }))
+  app.get('/v1/sync/status', async (request, reply) => {
+    try {
+      return {
+        status: 'ready',
+        outbox: outbox
+          ? await outbox.summary()
+          : { pending: 0, inflight: 0, total: 0 },
+      }
+    } catch (error) {
+      request.log.error({ err: error }, 'Sync status check failed')
+      return reply.code(500).send({
+        error:
+          error instanceof Error ? error.message : 'Sync status unavailable',
+      })
+    }
+  })
 
   app.post('/v1/orders', async (request, reply) => {
     if (!outbox) return reply.code(503).send({ error: 'Outbox unavailable' })
@@ -176,7 +186,17 @@ export function createHubApp(
       return reply
         .code(401)
         .send({ error: 'Branch device authentication required' })
-    return { tickets: kitchen ? await kitchen.list() : [] }
+    try {
+      return { tickets: kitchen ? await kitchen.list() : [] }
+    } catch (error) {
+      request.log.error({ err: error }, 'Kitchen ticket list failed')
+      return reply.code(500).send({
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Kitchen tickets unavailable',
+      })
+    }
   })
 
   app.post<{
