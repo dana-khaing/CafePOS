@@ -38,6 +38,7 @@ export default function HistoryPage() {
   const [managerPin, setManagerPin] = useState('')
   const [pendingRetry, setPendingRetry] = useState<SyncEvent | null>(null)
   const [error, setError] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
   const [sending, setSending] = useState(false)
   const sendingRef = useRef(false)
   const dialogRef = useRef<HTMLDivElement>(null)
@@ -86,6 +87,7 @@ export default function HistoryPage() {
     sendingRef.current = true
     setSending(true)
     setError(false)
+    setErrorMessage('')
     try {
       const staged = stageRefund(history, event)
       await save(staged)
@@ -101,7 +103,8 @@ export default function HistoryPage() {
       setReason('')
       setManagerPin('')
       setPendingRetry(null)
-    } catch {
+    } catch (caught) {
+      setErrorMessage(caught instanceof Error ? caught.message : '')
       setError(true)
     } finally {
       sendingRef.current = false
@@ -127,7 +130,8 @@ export default function HistoryPage() {
         createdAt: new Date().toISOString(),
       })
       void send(selected, result.event)
-    } catch {
+    } catch (caught) {
+      setErrorMessage(caught instanceof Error ? caught.message : '')
       setError(true)
     }
   }
@@ -216,7 +220,7 @@ export default function HistoryPage() {
             role="alert"
             className="mt-4 rounded-md bg-destructive/10 p-3 text-destructive"
           >
-            {t('refundError')}
+            {errorMessage || t('refundError')}
           </p>
         )}
         <div className="mt-6 grid gap-4 xl:grid-cols-2">
