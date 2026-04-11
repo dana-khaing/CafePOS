@@ -43,13 +43,3 @@ export function multiplyMoney(value: Money, quantity: number): Money {
   }
   return money(value.minor * quantity, value.currency)
 }
-
-export function sumMoney(
-  values: readonly Money[],
-  currency: Currency = 'THB',
-): Money {
-  return values.reduce(
-    (total, value) => addMoney(total, value),
-    money(0, currency),
-  )
-}
