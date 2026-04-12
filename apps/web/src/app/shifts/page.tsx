@@ -34,6 +34,7 @@ export default function ShiftsPage() {
   const [reason, setReason] = useState('')
   const [pin, setPin] = useState('')
   const [error, setError] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
   const [storageError, setStorageError] = useState(false)
   const [busy, setBusy] = useState(false)
   const busyRef = useRef(false)
@@ -95,6 +96,7 @@ export default function ShiftsPage() {
     busyRef.current = true
     setBusy(true)
     setError(false)
+    setErrorMessage('')
     try {
       await verifyManagerPin(pin)
       const minor = Math.round(Number(amount) * 100)
@@ -138,7 +140,8 @@ export default function ShiftsPage() {
       setAmount('')
       setReason('')
       setPin('')
-    } catch {
+    } catch (caught) {
+      setErrorMessage(caught instanceof Error ? caught.message : '')
       setError(true)
     } finally {
       busyRef.current = false
@@ -161,7 +164,7 @@ export default function ShiftsPage() {
             role="alert"
             className="mt-4 rounded-md bg-destructive/10 p-3 text-destructive"
           >
-            {t('managerApprovalError')}
+            {errorMessage || t('managerApprovalError')}
           </p>
         )}
         {storageError && (
