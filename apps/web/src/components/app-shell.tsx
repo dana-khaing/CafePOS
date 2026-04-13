@@ -80,7 +80,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               className="grid size-9 place-items-center rounded-full bg-secondary font-semibold"
               aria-label={t('signedIn')}
             >
-              MK
+              M
             </span>
           </div>
         </header>
