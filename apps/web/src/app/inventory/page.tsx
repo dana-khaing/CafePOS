@@ -378,7 +378,7 @@ export default function InventoryPage() {
                 />
               </label>
               <label className="block text-sm font-medium">
-                Manager PIN
+                {t('managerPin')}
                 <input
                   className="mt-2 h-11 w-full rounded-md border bg-background px-3"
                   type="password"
