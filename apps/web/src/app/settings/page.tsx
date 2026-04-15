@@ -21,6 +21,7 @@ export default function SettingsPage() {
   const [status, setStatus] = useState<'idle' | 'saved' | 'error'>('idle')
   const [errorMessage, setErrorMessage] = useState('')
   const busy = useRef(false)
+  const [saving, setSaving] = useState(false)
   const dirty = useRef(false)
   useEffect(() => {
     const load = () => {
@@ -50,6 +51,7 @@ export default function SettingsPage() {
   const save = async () => {
     if (busy.current) return
     busy.current = true
+    setSaving(true)
     setStatus('idle')
     try {
       await verifyManagerPin(pin)
@@ -62,6 +64,7 @@ export default function SettingsPage() {
       setStatus('error')
     } finally {
       busy.current = false
+      setSaving(false)
     }
   }
   return (
@@ -153,7 +156,7 @@ export default function SettingsPage() {
             </div>
             <Button
               className="mt-6"
-              disabled={pin.length < 4}
+              disabled={saving || pin.length < 4}
               onClick={() => void save()}
             >
               <Save aria-hidden="true" />
