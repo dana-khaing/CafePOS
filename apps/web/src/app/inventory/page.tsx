@@ -68,6 +68,7 @@ export default function InventoryPage() {
   const [error, setError] = useState(false)
   const [notice, setNotice] = useState<Notice>({ kind: 'idle', message: '' })
   const busy = useRef(false)
+  const [saving, setSaving] = useState(false)
   const dialogRef = useRef<HTMLDivElement>(null)
   const returnFocus = useRef<HTMLElement | null>(null)
 
@@ -159,6 +160,7 @@ export default function InventoryPage() {
   const saveItem = async () => {
     if (busy.current) return
     busy.current = true
+    setSaving(true)
     setError(false)
     setNotice({ kind: 'idle', message: '' })
     try {
@@ -183,12 +185,14 @@ export default function InventoryPage() {
       })
     } finally {
       busy.current = false
+      setSaving(false)
     }
   }
 
   const saveAdjustment = async () => {
     if (!selected || busy.current) return
     busy.current = true
+    setSaving(true)
     setError(false)
     setNotice({ kind: 'idle', message: '' })
     try {
@@ -220,6 +224,7 @@ export default function InventoryPage() {
       })
     } finally {
       busy.current = false
+      setSaving(false)
     }
   }
 
@@ -395,6 +400,7 @@ export default function InventoryPage() {
               className="mt-4"
               onClick={() => void saveItem()}
               disabled={
+                saving ||
                 !draft.id.trim() ||
                 !draft.name.trim() ||
                 editorPin.length < 4 ||
@@ -513,6 +519,7 @@ export default function InventoryPage() {
                 </Button>
                 <Button
                   disabled={
+                    saving ||
                     !/^-?[1-9]\d*$/.test(delta) ||
                     !reason.trim() ||
                     adjustPin.length < 4
