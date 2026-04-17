@@ -89,12 +89,12 @@ export function ConnectivityChip() {
     status.branch ? `${status.branch.name} (${status.branch.id})` : null,
     status.publicOrigin ?? null,
     status.uptimeSeconds != null
-      ? `Uptime ${formatUptime(status.uptimeSeconds)}`
+      ? `${t('hubUptime')} ${formatUptime(status.uptimeSeconds)}`
       : null,
     status.connection !== 'checking' && status.checkedAt
-      ? `Checked ${formatHubCheckedAt(status.checkedAt)}`
+      ? `${t('hubCheckedAt')} ${formatHubCheckedAt(status.checkedAt)}`
       : null,
-    status.error ? `Last error: ${status.error}` : null,
+    status.error ? `${t('hubLastError')}: ${status.error}` : null,
   ]
     .filter(Boolean)
     .join(' · ')
