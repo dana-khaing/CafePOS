@@ -14,4 +14,9 @@ const app = createHubApp(
   new FileRefundStore(config.refundPath),
 )
 
-await app.listen({ host: config.host, port: config.port })
+try {
+  await app.listen({ host: config.host, port: config.port })
+} catch (error) {
+  app.log.error({ err: error }, 'Failed to start branch hub')
+  process.exit(1)
+}
