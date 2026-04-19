@@ -13,6 +13,15 @@ describe('membership permissions', () => {
   it('limits managers to branch operations and reporting', () => {
     expect(hasPermission('manager', 'branch.manage')).toBe(true)
     expect(hasPermission('manager', 'branch.staff.assign')).toBe(true)
+    expect(hasPermission('manager', 'order.create')).toBe(true)
+    expect(hasPermission('manager', 'kitchen.view')).toBe(true)
+    expect(hasPermission('manager', 'report.view')).toBe(true)
+    // Refunds specifically gate on this - createRefund() in refund.ts
+    // calls hasPermission(refund.actorRole, 'refund.create') on every
+    // manager-approved refund, so a regression here would break refunds
+    // in production while every refund-flow test kept passing (those
+    // tests exercise the flow, not this permission set directly).
+    expect(hasPermission('manager', 'refund.create')).toBe(true)
     expect(hasPermission('manager', 'staff.manage')).toBe(false)
     expect(hasPermission('manager', 'organization.manage')).toBe(false)
     expect(hasPermission('manager', 'branch.create')).toBe(false)
