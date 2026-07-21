@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 
+import { useLocale } from '@/components/locale-provider'
 import { Button } from '@/components/ui/button'
 import {
   Sheet,
@@ -22,14 +23,15 @@ import {
 } from '@/components/ui/sheet'
 
 const navigation = [
-  { label: 'Overview', href: '/' as const, icon: LayoutDashboard },
-  { label: 'Orders', href: '/' as const, icon: ReceiptText },
-  { label: 'Kitchen', href: '/' as const, icon: Utensils },
-  { label: 'Reports', href: '/' as const, icon: BarChart3 },
-  { label: 'Settings', href: '/' as const, icon: Settings },
+  { label: 'overview' as const, href: '/' as const, icon: LayoutDashboard },
+  { label: 'orders' as const, href: '/' as const, icon: ReceiptText },
+  { label: 'kitchen' as const, href: '/' as const, icon: Utensils },
+  { label: 'reports' as const, href: '/' as const, icon: BarChart3 },
+  { label: 'settings' as const, href: '/' as const, icon: Settings },
 ]
 
 export function MobileNavigation() {
+  const { t } = useLocale()
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -37,12 +39,15 @@ export function MobileNavigation() {
           variant="ghost"
           size="icon"
           className="lg:hidden"
-          aria-label="Open navigation"
+          aria-label={t('openNavigation')}
         >
           <Menu aria-hidden="true" />
         </Button>
       </SheetTrigger>
-      <SheetContent aria-describedby="mobile-navigation-description">
+      <SheetContent
+        aria-describedby="mobile-navigation-description"
+        closeLabel={t('closeNavigation')}
+      >
         <SheetTitle className="flex h-14 items-center gap-3 px-2 pe-12">
           <span className="grid size-10 place-items-center rounded-lg bg-primary text-primary-foreground">
             <Coffee className="size-5" aria-hidden="true" />
@@ -53,9 +58,9 @@ export function MobileNavigation() {
           id="mobile-navigation-description"
           className="sr-only"
         >
-          Navigate between CafePOS work areas.
+          {t('navigationDescription')}
         </SheetDescription>
-        <nav aria-label="Mobile primary" className="mt-6 grid gap-1">
+        <nav aria-label={t('mobileNavigation')} className="mt-6 grid gap-1">
           {navigation.map((item, index) => (
             <SheetClose key={item.label} asChild>
               <Button
@@ -68,16 +73,16 @@ export function MobileNavigation() {
                   aria-current={index === 0 ? 'page' : undefined}
                 >
                   <item.icon aria-hidden="true" />
-                  {item.label}
+                  {t(item.label)}
                 </Link>
               </Button>
             </SheetClose>
           ))}
         </nav>
         <div className="mt-auto rounded-lg bg-muted p-3 text-sm">
-          <span className="font-medium">Branch hub</span>
+          <span className="font-medium">{t('branchHub')}</span>
           <span className="mt-1 block text-muted-foreground">
-            Last sync just now
+            {t('lastSync')}
           </span>
         </div>
       </SheetContent>

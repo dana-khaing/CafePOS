@@ -36,6 +36,10 @@ pnpm dev
 The web app defaults to `http://localhost:3000`. The branch hub defaults to
 `http://127.0.0.1:4310`, with health information at `/health`.
 
+The staff interface supports English and Thai. The header language control
+stores its selection on the device, while currency and dates use the browser's
+locale-aware `Intl` formatters.
+
 ## Quality checks
 
 ```bash

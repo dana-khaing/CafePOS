@@ -4,8 +4,10 @@ import { Cloud, CloudOff } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
+import { useLocale } from '@/components/locale-provider'
 
 export function ConnectivityChip() {
+  const { t } = useLocale()
   const [online, setOnline] = useState(true)
 
   useEffect(() => {
@@ -22,7 +24,7 @@ export function ConnectivityChip() {
   return (
     <Badge variant={online ? 'success' : 'warning'} aria-live="polite">
       {online ? <Cloud aria-hidden="true" /> : <CloudOff aria-hidden="true" />}
-      {online ? 'Hub connected' : 'Working offline'}
+      {online ? t('connected') : t('disconnected')}
     </Badge>
   )
 }
