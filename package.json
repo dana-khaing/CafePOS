@@ -17,6 +17,11 @@
     "test": "turbo run test",
     "typecheck": "turbo run typecheck"
   },
+  "pnpm": {
+    "overrides": {
+      "postcss": "8.5.21"
+    }
+  },
   "devDependencies": {
     "@eslint/js": "9.30.1",
     "eslint": "9.30.1",
