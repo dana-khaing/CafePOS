@@ -4,7 +4,7 @@
 
 - Use Node 22 and pnpm 10.13.1.
 - Copy `.env.example`, set unique branch credentials and manager PIN, and never commit secrets.
-- Run `pnpm format`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, and `pnpm audit --audit-level high`.
+- Run `pnpm release:check`.
 - Export and verify a backup from the production browser profile.
 - Confirm hub `/health`, `/v1/status`, and `/v1/sync/status` return successfully.
 
