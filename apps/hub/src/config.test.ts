@@ -7,6 +7,7 @@ const validEnv = {
   HUB_BRANCH_ID: 'branch-riverside',
   HUB_BRANCH_NAME: 'Riverside Cafe',
   HUB_BRANCH_TOKEN: 'test-branch-device-token',
+  HUB_REFUND_APPROVAL_PIN: '2468',
 }
 
 describe('hub configuration', () => {

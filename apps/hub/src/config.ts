@@ -8,6 +8,8 @@ export type HubConfig = Readonly<{
   outboxPath: string
   branchToken: string
   kitchenPath: string
+  refundPath: string
+  refundApprovalPin: string
 }>
 
 function required(value: string | undefined, name: string) {
@@ -42,7 +44,12 @@ export function loadHubConfig(env: NodeJS.ProcessEnv = process.env): HubConfig {
     branchId: required(env.HUB_BRANCH_ID, 'HUB_BRANCH_ID'),
     branchName: required(env.HUB_BRANCH_NAME, 'HUB_BRANCH_NAME'),
     branchToken: required(env.HUB_BRANCH_TOKEN, 'HUB_BRANCH_TOKEN'),
+    refundApprovalPin: required(
+      env.HUB_REFUND_APPROVAL_PIN,
+      'HUB_REFUND_APPROVAL_PIN',
+    ),
     outboxPath: env.HUB_OUTBOX_PATH?.trim() || './data/outbox.json',
     kitchenPath: env.HUB_KITCHEN_PATH?.trim() || './data/kitchen.json',
+    refundPath: env.HUB_REFUND_PATH?.trim() || './data/refunds.json',
   }
 }
