@@ -7,5 +7,5 @@ CafePOS exports critical validated ledgers and in-flight recovery records in a v
 ## Consequences
 
 - Accidental corruption is detected before changing live data. The unkeyed checksum does not authenticate who created or edited a backup.
-- Restore is intentionally limited to known critical keys and schema version 1.
+- Restore is intentionally limited to known critical keys and the current supported schema version.
 - Operators must keep exported files in appropriately protected storage.
