@@ -4,6 +4,7 @@ import { money } from './money'
 import {
   addDraftOrderLine,
   calculateDraftOrderTotal,
+  orderLineModifierSignature,
   setDraftOrderLineQuantity,
   type DraftOrder,
   type DraftOrderLine,
@@ -25,7 +26,12 @@ const line: DraftOrderLine = {
   modifiers: [{ optionId: 'oat', name: 'Oat milk', priceDelta: money(2000) }],
   taxRate: vat,
 }
-const order: DraftOrder = { id: 'order-1', currency: 'THB', lines: [] }
+const order: DraftOrder = {
+  id: 'order-1',
+  currency: 'THB',
+  diningMode: 'counter',
+  lines: [],
+}
 
 describe('draft order', () => {
   it('adds snapshots and calculates modifier-aware inclusive totals', () => {
@@ -83,5 +89,42 @@ describe('draft order', () => {
         ],
       }),
     ).toThrow()
+  })
+
+  it('requires a table number only for table service', () => {
+    expect(() => validateDraftOrder({ ...order, diningMode: 'table' })).toThrow(
+      'table number',
+    )
+    expect(
+      validateDraftOrder({
+        ...order,
+        diningMode: 'table',
+        tableNumber: 'A12',
+      }).tableNumber,
+    ).toBe('A12')
+    expect(() => validateDraftOrder({ ...order, tableNumber: 'A12' })).toThrow(
+      'Only table',
+    )
+  })
+
+  it('rejects duplicate modifier options and creates stable signatures', () => {
+    expect(() =>
+      validateDraftOrder({
+        ...order,
+        lines: [
+          {
+            ...line,
+            modifiers: [line.modifiers[0], line.modifiers[0]],
+          },
+        ],
+      }),
+    ).toThrow('unique')
+    const large = { optionId: 'large', name: 'Large', priceDelta: money(2500) }
+    expect(orderLineModifierSignature([line.modifiers[0], large])).toBe(
+      orderLineModifierSignature([large, line.modifiers[0]]),
+    )
+    expect(orderLineModifierSignature([large])).not.toBe(
+      orderLineModifierSignature([line.modifiers[0]]),
+    )
   })
 })

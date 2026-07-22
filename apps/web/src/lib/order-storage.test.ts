@@ -4,7 +4,12 @@ import { type DraftOrder } from '@cafepos/domain'
 
 import { parseStoredOrder, serializeOrder } from './order-storage'
 
-const fallback: DraftOrder = { id: 'new', currency: 'THB', lines: [] }
+const fallback: DraftOrder = {
+  id: 'new',
+  currency: 'THB',
+  diningMode: 'counter',
+  lines: [],
+}
 
 describe('draft order storage', () => {
   it('round trips a validated draft', () => {
@@ -51,6 +56,43 @@ describe('draft order storage', () => {
                 name: '',
                 basisPoints: 1.5,
                 mode: 'bogus',
+              },
+            },
+          ],
+        }),
+        fallback,
+      ),
+    ).toBe(fallback)
+    expect(
+      parseStoredOrder(
+        JSON.stringify({
+          id: 'forged',
+          currency: 'THB',
+          diningMode: 'counter',
+          lines: [
+            {
+              id: 'line',
+              itemId: 'latte',
+              name: 'Latte',
+              quantity: 1,
+              unitPrice: { currency: 'THB', minor: 12000 },
+              modifiers: [
+                {
+                  optionId: 'oat',
+                  name: 'Oat',
+                  priceDelta: { currency: 'THB', minor: 2000 },
+                },
+                {
+                  optionId: 'oat',
+                  name: 'Oat',
+                  priceDelta: { currency: 'THB', minor: 2000 },
+                },
+              ],
+              taxRate: {
+                id: 'vat7',
+                name: 'VAT',
+                basisPoints: 700,
+                mode: 'inclusive',
               },
             },
           ],
