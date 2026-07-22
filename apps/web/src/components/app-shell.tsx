@@ -30,6 +30,7 @@ const navigation: ReadonlyArray<{
     | 'shifts'
     | 'kitchen'
     | 'inventory'
+    | 'backup'
     | 'reports'
     | 'settings'
   href: Route
@@ -72,6 +73,12 @@ const navigation: ReadonlyArray<{
     label: 'reports',
     href: '/reports' as Route,
     icon: BarChart3,
+    available: true,
+  },
+  {
+    label: 'backup',
+    href: '/backup' as Route,
+    icon: Settings,
     available: true,
   },
   { label: 'settings', href: '/', icon: Settings, available: false },
