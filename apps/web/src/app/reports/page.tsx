@@ -4,6 +4,7 @@ import { BarChart3, Banknote, CreditCard, QrCode } from 'lucide-react'
 import { buildSalesReport } from '@cafepos/domain'
 import { AppShell } from '@/components/app-shell'
 import { useLocale } from '@/components/locale-provider'
+import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { businessDayRange, dateInTimezone } from '@/lib/business-time'
 import {
@@ -17,9 +18,10 @@ import {
   defaultSettings,
   parseSettings,
 } from '@/lib/settings-storage'
+import { buildDailySalesSummaries } from '@/lib/sales-summary'
 
 export default function ReportsPage() {
-  const { money, t } = useLocale()
+  const { locale, money, t } = useLocale()
   const [history, setHistory] = useState<SaleHistory>(emptyHistory)
   const [settings, setSettings] = useState(defaultSettings)
   const [date, setDate] = useState(() =>
@@ -47,7 +49,17 @@ export default function ReportsPage() {
       to,
     })
   }, [date, history, settings.timezone])
+  const salesSeries = useMemo(
+    () => buildDailySalesSummaries(history, date, settings.timezone),
+    [date, history, settings.timezone],
+  )
   const format = (minor: number) => money(minor / 100)
+  const formatSeriesDate = (value: string) =>
+    new Intl.DateTimeFormat(locale, {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    }).format(new Date(`${value}T12:00:00Z`))
   const tenderRows: ReadonlyArray<{
     key: 'cashPayment' | 'card' | 'qr'
     Icon: typeof Banknote
@@ -138,6 +150,52 @@ export default function ReportsPage() {
             </CardContent>
           </Card>
         </div>
+        <Card className="mt-6">
+          <CardContent className="p-6">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-semibold">{t('twoWeekSales')}</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {t('twoWeekSalesDescription')}
+                </p>
+              </div>
+              <Badge variant="outline">{date}</Badge>
+            </div>
+            <div className="mt-5 overflow-hidden rounded-lg border">
+              <div className="grid grid-cols-[1.25fr_0.6fr_0.8fr_0.8fr] gap-3 border-b bg-muted/40 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <span>{t('businessDate')}</span>
+                <span className="text-end">{t('dailyOrders')}</span>
+                <span className="text-end">{t('dailyNetSales')}</span>
+                <span className="text-end">{t('dailyRefunds')}</span>
+              </div>
+              <div className="divide-y">
+                {salesSeries.map(({ date: salesDate, report: dailyReport }) => {
+                  const hasSales =
+                    dailyReport.orderCount > 0 || dailyReport.netMinor > 0
+                  return (
+                    <div
+                      className="grid grid-cols-[1.25fr_0.6fr_0.8fr_0.8fr] gap-3 px-4 py-3 text-sm"
+                      key={salesDate}
+                    >
+                      <span className="font-medium">
+                        {formatSeriesDate(salesDate)}
+                      </span>
+                      <span className="text-end">
+                        {hasSales ? dailyReport.orderCount : '—'}
+                      </span>
+                      <span className="text-end font-medium">
+                        {format(dailyReport.netMinor)}
+                      </span>
+                      <span className="text-end text-muted-foreground">
+                        {format(dailyReport.refundMinor)}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </section>
     </AppShell>
   )
