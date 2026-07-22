@@ -1,46 +1,111 @@
 'use client'
 
-import { Cloud, CloudOff } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { Cloud, CloudOff, RefreshCw } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { useLocale } from '@/components/locale-provider'
-import { type HubConnection, probeHub } from '@/lib/hub-status'
+import { type HubProbeResult, probeHub } from '@/lib/hub-status'
 
 const hubUrl = process.env.NEXT_PUBLIC_BRANCH_HUB_URL ?? 'http://127.0.0.1:4310'
 
+function formatTime(value: string) {
+  return new Intl.DateTimeFormat(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  }).format(new Date(value))
+}
+
+function formatUptime(seconds?: number) {
+  if (seconds == null) return null
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  const parts = [
+    hours > 0 ? `${hours}h` : null,
+    minutes > 0 ? `${minutes}m` : null,
+  ].filter(Boolean)
+  return parts.length ? parts.join(' ') : '< 1m'
+}
+
 export function ConnectivityChip() {
   const { t } = useLocale()
-  const [connection, setConnection] = useState<HubConnection>('checking')
+  const [status, setStatus] = useState<HubProbeResult>({
+    connection: 'checking',
+    checkedAt: new Date().toISOString(),
+  })
+  const activeRef = useRef(true)
+  const inFlightRef = useRef(false)
 
-  useEffect(() => {
-    let active = true
-    const update = async () => {
-      const status = await probeHub(hubUrl)
-      if (active) setConnection(status)
-    }
-    void update()
-    const interval = window.setInterval(update, 15_000)
-    return () => {
-      active = false
-      window.clearInterval(interval)
+  const update = useCallback(async () => {
+    if (inFlightRef.current) return
+    inFlightRef.current = true
+    try {
+      const next = await probeHub(hubUrl)
+      if (activeRef.current) setStatus(next)
+    } finally {
+      inFlightRef.current = false
     }
   }, [])
 
-  const connected = connection === 'connected'
+  useEffect(() => {
+    activeRef.current = true
+    void update()
+    const interval = window.setInterval(update, 15_000)
+    return () => {
+      activeRef.current = false
+      window.clearInterval(interval)
+    }
+  }, [update])
+
+  const connected = status.connection === 'connected'
+  const hasBacklog = Boolean(status.sync && status.sync.pending > 0)
+  const label =
+    status.connection === 'checking'
+      ? t('checkingHub')
+      : connected
+        ? hasBacklog
+          ? `${t('connected')} · ${status.sync?.pending} ${t('syncPending')}`
+          : t('connected')
+        : t('disconnected')
+  const details = [
+    status.branch ? `${status.branch.name} (${status.branch.id})` : null,
+    status.publicOrigin ?? null,
+    status.uptimeSeconds != null
+      ? `Uptime ${formatUptime(status.uptimeSeconds)}`
+      : null,
+    status.checkedAt ? `Checked ${formatTime(status.checkedAt)}` : null,
+    status.error ? `Last error: ${status.error}` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
 
   return (
-    <Badge variant={connected ? 'success' : 'warning'} aria-live="polite">
-      {connected ? (
-        <Cloud aria-hidden="true" />
-      ) : (
-        <CloudOff aria-hidden="true" />
-      )}
-      {connection === 'checking'
-        ? t('checkingHub')
-        : connected
-          ? t('connected')
-          : t('disconnected')}
-    </Badge>
+    <div className="flex items-center gap-2">
+      <Badge
+        variant={connected ? (hasBacklog ? 'warning' : 'success') : 'warning'}
+        aria-live="polite"
+        title={details || label}
+      >
+        {connected ? (
+          <Cloud aria-hidden="true" />
+        ) : (
+          <CloudOff aria-hidden="true" />
+        )}
+        {label}
+      </Badge>
+      <Button
+        type="button"
+        size="icon"
+        variant="ghost"
+        className="size-8"
+        onClick={() => void update()}
+        aria-label={t('retryHub')}
+        title={t('retryHub')}
+      >
+        <RefreshCw className="size-4" aria-hidden="true" />
+      </Button>
+    </div>
   )
 }
