@@ -28,7 +28,12 @@ const navigation: ReadonlyArray<{
 }> = [
   { label: 'overview', href: '/', icon: LayoutDashboard, available: true },
   { label: 'menu', href: '/menu', icon: BookOpen, available: true },
-  { label: 'orders', href: '/', icon: ReceiptText, available: false },
+  {
+    label: 'orders',
+    href: '/orders' as Route,
+    icon: ReceiptText,
+    available: true,
+  },
   { label: 'kitchen', href: '/', icon: Utensils, available: false },
   { label: 'reports', href: '/', icon: BarChart3, available: false },
   { label: 'settings', href: '/', icon: Settings, available: false },
