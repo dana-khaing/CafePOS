@@ -147,14 +147,11 @@ export default function HomePage() {
               <CardTitle>{t('recentActivity')}</CardTitle>
               <CardDescription>{t('latestOrders')}</CardDescription>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled
-              title={t('historyComingSoon')}
-            >
-              {t('viewAll')}
-              <ArrowRight aria-hidden="true" />
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/history">
+                {t('viewAll')}
+                <ArrowRight aria-hidden="true" />
+              </Link>
             </Button>
           </CardHeader>
           <CardContent className="grid gap-1">
