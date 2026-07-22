@@ -73,7 +73,12 @@ const navigation: ReadonlyArray<{
     icon: Utensils,
     available: true,
   },
-  { label: 'reports', href: '/', icon: BarChart3, available: false },
+  {
+    label: 'reports',
+    href: '/reports' as Route,
+    icon: BarChart3,
+    available: true,
+  },
   { label: 'settings', href: '/', icon: Settings, available: false },
 ]
 
