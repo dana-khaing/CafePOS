@@ -7,6 +7,8 @@ import {
   completePayment,
   money,
   paymentSummary,
+  validateCompletedPaymentEvent,
+  type CompletedPayment,
   type PaymentMethod,
   type PaymentSession,
   type SyncEvent,
@@ -27,7 +29,7 @@ export function PaymentDialog({
   onComplete,
 }: {
   initial: PaymentSession
-  onComplete: () => void
+  onComplete: (payment: CompletedPayment) => void
 }) {
   const { money: formatMoney, t } = useLocale()
   const [session, setSession] = useState(initial)
@@ -74,7 +76,7 @@ export function PaymentDialog({
       localStorage.removeItem(PAYMENT_STORAGE_KEY)
       localStorage.removeItem(PENDING_PAYMENT_EVENT_KEY)
       pendingEventRef.current = null
-      onComplete()
+      onComplete(validateCompletedPaymentEvent(event))
     } catch {
       setError(true)
     } finally {
