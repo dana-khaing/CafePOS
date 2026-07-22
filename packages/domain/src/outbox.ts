@@ -42,6 +42,17 @@ export function enqueueEvent(
     if (syncEventsEqual(existing.event, event)) return outbox
     throw new Error(`Sync event ID collision: ${event.id}`)
   }
+  const aggregateVersion = outbox.find(
+    (item) =>
+      item.event.entityType === event.entityType &&
+      item.event.entityId === event.entityId &&
+      item.event.aggregateVersion === event.aggregateVersion,
+  )
+  if (aggregateVersion) {
+    throw new Error(
+      `Aggregate version already queued: ${event.entityType}/${event.entityId}@${event.aggregateVersion}`,
+    )
+  }
   return [
     ...outbox,
     {

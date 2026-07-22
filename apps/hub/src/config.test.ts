@@ -6,6 +6,7 @@ const validEnv = {
   HUB_PUBLIC_ORIGIN: 'https://branch.local.cafepos.test',
   HUB_BRANCH_ID: 'branch-riverside',
   HUB_BRANCH_NAME: 'Riverside Cafe',
+  HUB_BRANCH_TOKEN: 'test-branch-device-token',
 }
 
 describe('hub configuration', () => {
@@ -32,6 +33,9 @@ describe('hub configuration', () => {
     )
     expect(() => loadHubConfig({ ...validEnv, HUB_BRANCH_ID: '' })).toThrow(
       'HUB_BRANCH_ID',
+    )
+    expect(() => loadHubConfig({ ...validEnv, HUB_BRANCH_TOKEN: '' })).toThrow(
+      'HUB_BRANCH_TOKEN',
     )
   })
 })
