@@ -48,12 +48,7 @@ and should be followed before production deployment.
 ## Quality checks
 
 ```bash
-pnpm format
-pnpm lint
-pnpm typecheck
-pnpm test
-pnpm build
-pnpm audit --audit-level high
+pnpm release:check
 ```
 
 ## Security and fiscal configuration
