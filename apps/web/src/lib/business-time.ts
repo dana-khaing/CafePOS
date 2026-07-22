@@ -56,3 +56,22 @@ export const businessDayRange = (date: string, timeZone: string) => {
     to: midnightInTimezone(nextDate, timeZone).toISOString(),
   }
 }
+
+export const shiftBusinessDate = (date: string, offsetDays: number) => {
+  if (!Number.isInteger(offsetDays))
+    throw new TypeError('Business date offset is invalid')
+  const [year, month, day] = date.split('-').map(Number) as [
+    number,
+    number,
+    number,
+  ]
+  if (
+    !Number.isInteger(year) ||
+    !Number.isInteger(month) ||
+    !Number.isInteger(day)
+  )
+    throw new TypeError('Business date is invalid')
+  return new Date(Date.UTC(year, month - 1, day + offsetDays))
+    .toISOString()
+    .slice(0, 10)
+}
