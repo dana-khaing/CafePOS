@@ -54,6 +54,10 @@ import {
   serializeSaleHistory,
 } from '@/lib/history-storage'
 import { recordCashSale, updateStoredShiftLedger } from '@/lib/shift-storage'
+import {
+  consumePendingInventory,
+  stageInventoryReceipt,
+} from '@/lib/inventory-storage'
 
 const vat = {
   id: 'vat7',
@@ -278,9 +282,15 @@ export default function OrdersPage() {
           initial={payment}
           onComplete={async (completedPayment) => {
             const completedReceipt = createReceipt(order, completedPayment)
+            await stageInventoryReceipt(localStorage, completedReceipt)
             await updateStoredShiftLedger(localStorage, (ledger) =>
               recordCashSale(ledger, completedReceipt),
             )
+            try {
+              await consumePendingInventory(localStorage)
+            } catch {
+              // The durable projection queue remains available for retry.
+            }
             localStorage.setItem(
               RECEIPT_STORAGE_KEY,
               serializeReceipt(completedReceipt),

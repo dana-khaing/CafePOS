@@ -155,6 +155,15 @@ export const messages = {
     managerApprovalError: 'Manager approval or drawer update failed.',
     shiftStorageError:
       'Drawer records are damaged. Operations are locked to protect the audit trail.',
+    inventory: 'Inventory',
+    inventoryDescription:
+      'Track ingredients, recipe usage, and reorder levels.',
+    inventoryError: 'Inventory is unavailable or the adjustment failed.',
+    lowStock: 'Low stock',
+    items: 'items',
+    reorderAt: 'Reorder at',
+    adjustStock: 'Adjust stock',
+    quantityChange: 'Quantity change',
   },
   th: {
     overview: 'ภาพรวม',
@@ -310,6 +319,14 @@ export const messages = {
     managerApprovalError: 'การอนุมัติผู้จัดการหรือการอัปเดตลิ้นชักล้มเหลว',
     shiftStorageError:
       'ข้อมูลลิ้นชักเสียหาย ระบบล็อกการทำงานเพื่อปกป้องประวัติการตรวจสอบ',
+    inventory: 'สต็อก',
+    inventoryDescription: 'ติดตามวัตถุดิบ การใช้ตามสูตร และระดับสั่งซื้อ',
+    inventoryError: 'ไม่สามารถใช้สต็อกหรือปรับจำนวนได้',
+    lowStock: 'สต็อกต่ำ',
+    items: 'รายการ',
+    reorderAt: 'สั่งซื้อเมื่อ',
+    adjustStock: 'ปรับสต็อก',
+    quantityChange: 'จำนวนที่เปลี่ยน',
   },
 } as const
 
