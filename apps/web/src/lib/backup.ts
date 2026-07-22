@@ -22,6 +22,7 @@ import {
 import { RECEIPT_STORAGE_KEY } from './receipt-storage'
 import { SHIFT_STORAGE_KEY, validateShiftLedger } from './shift-storage'
 import { CRITICAL_STORAGE_LOCK, withCriticalStorageLock } from './storage-lock'
+import { SETTINGS_STORAGE_KEY, validateSettings } from './settings-storage'
 
 export const BACKUP_KEYS = [
   HISTORY_STORAGE_KEY,
@@ -35,11 +36,12 @@ export const BACKUP_KEYS = [
   PAYMENT_STORAGE_KEY,
   PENDING_PAYMENT_EVENT_KEY,
   RECEIPT_STORAGE_KEY,
+  SETTINGS_STORAGE_KEY,
 ] as const
 const INVENTORY_QUARANTINE_KEY = `${PENDING_INVENTORY_RECEIPTS_KEY}.quarantine`
 export type CafeBackup = Readonly<{
   product: 'CafePOS'
-  schema: 1
+  schema: 2
   createdAt: string
   data: Readonly<Record<string, string>>
   sha256: string
@@ -69,7 +71,7 @@ export async function createBackup(
     }
     const unsigned = {
       product: 'CafePOS' as const,
-      schema: 1 as const,
+      schema: 2 as const,
       createdAt,
       data,
     }
@@ -79,7 +81,7 @@ export async function createBackup(
 export async function validateBackup(value: CafeBackup) {
   if (
     value.product !== 'CafePOS' ||
-    value.schema !== 1 ||
+    value.schema !== 2 ||
     Number.isNaN(Date.parse(value.createdAt)) ||
     !value.data ||
     typeof value.data !== 'object'
@@ -110,6 +112,7 @@ export async function validateBackup(value: CafeBackup) {
     else if (key === PENDING_PAYMENT_EVENT_KEY)
       validateCompletedPaymentEvent(parsed)
     else if (key === RECEIPT_STORAGE_KEY) validateReceipt(parsed)
+    else if (key === SETTINGS_STORAGE_KEY) validateSettings(parsed)
     else if (key === PENDING_INVENTORY_RECEIPTS_KEY) {
       if (!Array.isArray(parsed))
         throw new TypeError('Pending inventory receipts are invalid')
