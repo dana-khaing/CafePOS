@@ -21,6 +21,8 @@ export type DraftOrderLine = Readonly<{
 export type DraftOrder = Readonly<{
   id: string
   currency: Currency
+  diningMode: 'counter' | 'takeaway' | 'table'
+  tableNumber?: string
   lines: readonly DraftOrderLine[]
 }>
 
@@ -28,6 +30,12 @@ export function validateDraftOrder(order: DraftOrder): DraftOrder {
   if (!order.id.trim()) throw new TypeError('Order id is required')
   if (order.currency !== 'THB' && order.currency !== 'MMK')
     throw new TypeError('Order currency is unsupported')
+  if (!['counter', 'takeaway', 'table'].includes(order.diningMode))
+    throw new TypeError('Dining mode is unsupported')
+  if (order.diningMode === 'table' && !order.tableNumber?.trim())
+    throw new TypeError('Table orders require a table number')
+  if (order.diningMode !== 'table' && order.tableNumber !== undefined)
+    throw new TypeError('Only table orders may have a table number')
   const ids = new Set<string>()
   for (const line of order.lines) {
     if (!line.id.trim() || !line.itemId.trim() || !line.name.trim())
@@ -43,9 +51,13 @@ export function validateDraftOrder(order: DraftOrder): DraftOrder {
     )
       throw new TypeError('Order line price is invalid')
     validateTaxRate(line.taxRate)
+    const modifierIds = new Set<string>()
     for (const modifier of line.modifiers) {
       if (!modifier.optionId.trim() || !modifier.name.trim())
         throw new TypeError('Order modifier identity and name are required')
+      if (modifierIds.has(modifier.optionId))
+        throw new TypeError('Order modifier option ids must be unique per line')
+      modifierIds.add(modifier.optionId)
       if (
         modifier.priceDelta.currency !== order.currency ||
         !Number.isSafeInteger(modifier.priceDelta.minor) ||
@@ -55,6 +67,27 @@ export function validateDraftOrder(order: DraftOrder): DraftOrder {
     }
   }
   return order
+}
+
+export function orderLineModifierSignature(
+  modifiers: readonly OrderLineModifier[],
+): string {
+  return modifiers
+    .map((modifier) => modifier.optionId)
+    .sort()
+    .join('|')
+}
+
+export function setDraftOrderDiningMode(
+  order: DraftOrder,
+  diningMode: DraftOrder['diningMode'],
+  tableNumber?: string,
+): DraftOrder {
+  return validateDraftOrder({
+    ...order,
+    diningMode,
+    tableNumber: diningMode === 'table' ? tableNumber : undefined,
+  })
 }
 
 export function addDraftOrderLine(
