@@ -45,6 +45,8 @@ locale-aware `Intl` formatters.
 The release checklist lives in [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md)
 and should be followed before production deployment. Use it as the minimum
 operator gate for backup validation, hub health checks, and smoke testing.
+The broader go-live plan is documented in
+[docs/PRODUCTION_READINESS_PLAN.md](docs/PRODUCTION_READINESS_PLAN.md).
 
 ## Quality checks
 
