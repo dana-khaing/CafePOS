@@ -1,6 +1,6 @@
 'use client'
-import { Banknote, LockKeyhole, Plus, Minus } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { Banknote, LockKeyhole, Minus, Plus } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   addCashMovement,
   closeCashShift,
@@ -11,6 +11,7 @@ import {
 } from '@cafepos/domain'
 import { AppShell } from '@/components/app-shell'
 import { useLocale } from '@/components/locale-provider'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { verifyManagerPin } from '@/lib/manager-client'
@@ -23,7 +24,7 @@ import {
 } from '@/lib/shift-storage'
 
 export default function ShiftsPage() {
-  const { money: formatMoney, t } = useLocale()
+  const { locale, money: formatMoney, t } = useLocale()
   const [ledger, setLedger] = useState<ShiftLedger>(emptyShiftLedger)
   const [mode, setMode] = useState<
     'open' | 'paid-in' | 'paid-out' | 'close' | null
@@ -50,6 +51,14 @@ export default function ShiftsPage() {
     window.addEventListener('storage', load)
     return () => window.removeEventListener('storage', load)
   }, [])
+  const formatDate = useMemo(
+    () =>
+      new Intl.DateTimeFormat(locale, {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      }),
+    [locale],
+  )
   useEffect(() => {
     if (!mode) return
     returnFocusRef.current = document.activeElement as HTMLElement
@@ -136,6 +145,7 @@ export default function ShiftsPage() {
     }
   }
   const current = ledger.current
+  const archive = ledger.archive
   return (
     <AppShell>
       <section className="p-4 md:p-8">
@@ -266,6 +276,86 @@ export default function ShiftsPage() {
             </CardContent>
           </Card>
         )}
+        <Card className="mt-6">
+          <CardContent className="p-6">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-semibold">{t('archivedShifts')}</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {t('archivedShiftsDescription')}
+                </p>
+              </div>
+              <Badge variant="outline">{archive.length}</Badge>
+            </div>
+            <div className="mt-5 space-y-3">
+              {archive.length ? (
+                archive.map((shift) => {
+                  const varianceMinor = shift.variance?.minor ?? 0
+                  const badgeVariant =
+                    varianceMinor > 0
+                      ? 'success'
+                      : varianceMinor < 0
+                        ? 'warning'
+                        : 'outline'
+                  return (
+                    <div key={shift.id} className="rounded-lg border p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div>
+                          <p className="font-medium">
+                            {shift.closedAt
+                              ? formatDate.format(new Date(shift.closedAt))
+                              : formatDate.format(new Date(shift.openedAt))}
+                          </p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {t('closedAt')}{' '}
+                            {shift.closedAt
+                              ? formatDate.format(new Date(shift.closedAt))
+                              : shift.openedAt}
+                          </p>
+                        </div>
+                        <Badge variant={badgeVariant}>
+                          {formatMoney(varianceMinor / 100)}
+                        </Badge>
+                      </div>
+                      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                        <div>
+                          <p className="text-sm text-muted-foreground">
+                            {t('expectedCash')}
+                          </p>
+                          <p className="mt-1 font-semibold">
+                            {formatMoney(
+                              (shift.expectedCash?.minor ?? 0) / 100,
+                            )}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">
+                            {t('countedCash')}
+                          </p>
+                          <p className="mt-1 font-semibold">
+                            {formatMoney((shift.countedCash?.minor ?? 0) / 100)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">
+                            {t('movementCount')}
+                          </p>
+                          <p className="mt-1 font-semibold">
+                            {shift.movements.length}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {t('noArchivedShifts')}
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
         {mode && (
           <div
             ref={dialogRef}
