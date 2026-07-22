@@ -18,9 +18,13 @@ export function formatMoney(amount: number, locale: Locale) {
 }
 
 export function formatCafeDate(date: Date, locale: Locale) {
-  return new Intl.DateTimeFormat(locale === 'th' ? 'th-TH' : 'en-GB', {
+  const parts = new Intl.DateTimeFormat(locale === 'th' ? 'th-TH' : 'en-GB', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
-  }).format(date)
+  }).formatToParts(date)
+  const weekday = parts.find((entry) => entry.type === 'weekday')?.value ?? ''
+  const day = parts.find((entry) => entry.type === 'day')?.value ?? ''
+  const month = parts.find((entry) => entry.type === 'month')?.value ?? ''
+  return `${weekday} ${day} ${month}`.trim()
 }

@@ -19,7 +19,7 @@ describe('localization utilities', () => {
   it('formats the cafe date in the selected language', () => {
     const date = new Date(2026, 6, 21)
 
-    expect(formatCafeDate(date, 'en')).toContain('July')
+    expect(formatCafeDate(date, 'en')).toBe('Tuesday 21 July')
     expect(formatCafeDate(date, 'th')).toContain('กรกฎาคม')
   })
 })
