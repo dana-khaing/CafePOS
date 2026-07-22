@@ -4,6 +4,7 @@ import cors from '@fastify/cors'
 import {
   PRODUCT_NAME,
   type SyncEvent,
+  validateCompletedPaymentEvent,
   validateSubmittedOrderEvent,
 } from '@cafepos/domain'
 
@@ -77,6 +78,26 @@ export function createHubApp(
     } catch (error) {
       return reply.code(400).send({
         error: error instanceof Error ? error.message : 'Invalid order event',
+      })
+    }
+  })
+
+  app.post('/v1/payments', async (request, reply) => {
+    if (!outbox) return reply.code(503).send({ error: 'Outbox unavailable' })
+    if (request.headers.authorization !== `Bearer ${config.branchToken}`)
+      return reply
+        .code(401)
+        .send({ error: 'Branch device authentication required' })
+    try {
+      const event = request.body as SyncEvent
+      const payment = validateCompletedPaymentEvent(event)
+      if (payment.branchId !== config.branchId)
+        return reply.code(400).send({ error: 'Invalid payment branch' })
+      await outbox.enqueue(event, event.occurredAt)
+      return reply.code(202).send({ status: 'queued', eventId: event.id })
+    } catch (error) {
+      return reply.code(400).send({
+        error: error instanceof Error ? error.message : 'Invalid payment event',
       })
     }
   })
