@@ -2,6 +2,7 @@
 
 import {
   BarChart3,
+  BookOpen,
   Coffee,
   LayoutDashboard,
   ReceiptText,
@@ -9,6 +10,8 @@ import {
   Utensils,
 } from 'lucide-react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import type { Route } from 'next'
 import type { ReactNode } from 'react'
 
 import { ConnectivityChip } from '@/components/connectivity-chip'
@@ -17,16 +20,23 @@ import { useLocale } from '@/components/locale-provider'
 import { MobileNavigation } from '@/components/mobile-navigation'
 import { Button } from '@/components/ui/button'
 
-const navigation = [
-  { label: 'overview' as const, href: '/' as const, icon: LayoutDashboard },
-  { label: 'orders' as const, href: '/' as const, icon: ReceiptText },
-  { label: 'kitchen' as const, href: '/' as const, icon: Utensils },
-  { label: 'reports' as const, href: '/' as const, icon: BarChart3 },
-  { label: 'settings' as const, href: '/' as const, icon: Settings },
+const navigation: ReadonlyArray<{
+  label: 'overview' | 'menu' | 'orders' | 'kitchen' | 'reports' | 'settings'
+  href: Route
+  icon: typeof LayoutDashboard
+  available: boolean
+}> = [
+  { label: 'overview', href: '/', icon: LayoutDashboard, available: true },
+  { label: 'menu', href: '/menu', icon: BookOpen, available: true },
+  { label: 'orders', href: '/', icon: ReceiptText, available: false },
+  { label: 'kitchen', href: '/', icon: Utensils, available: false },
+  { label: 'reports', href: '/', icon: BarChart3, available: false },
+  { label: 'settings', href: '/', icon: Settings, available: false },
 ]
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { t } = useLocale()
+  const pathname = usePathname()
   return (
     <div className="min-h-screen bg-background lg:grid lg:grid-cols-[16rem_1fr]">
       <aside className="sticky top-0 hidden h-screen w-64 flex-col border-e bg-card p-4 lg:flex">
@@ -45,22 +55,35 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
 
         <nav aria-label={t('primaryNavigation')} className="mt-6 grid gap-1">
-          {navigation.map((item, index) => (
-            <Button
-              key={item.label}
-              variant={index === 0 ? 'secondary' : 'ghost'}
-              className="justify-start"
-              asChild
-            >
-              <Link
-                href={item.href}
-                aria-current={index === 0 ? 'page' : undefined}
+          {navigation.map((item) =>
+            item.available ? (
+              <Button
+                key={item.label}
+                variant={pathname === item.href ? 'secondary' : 'ghost'}
+                className="justify-start"
+                asChild
+              >
+                <Link
+                  href={item.href}
+                  aria-current={pathname === item.href ? 'page' : undefined}
+                >
+                  <item.icon aria-hidden="true" />
+                  {t(item.label)}
+                </Link>
+              </Button>
+            ) : (
+              <Button
+                key={item.label}
+                variant="ghost"
+                className="justify-start"
+                disabled
+                title={t('featureComingSoon')}
               >
                 <item.icon aria-hidden="true" />
                 {t(item.label)}
-              </Link>
-            </Button>
-          ))}
+              </Button>
+            ),
+          )}
         </nav>
 
         <div className="mt-auto rounded-lg bg-muted p-3 text-sm">
