@@ -37,29 +37,43 @@ export function ConnectivityChip() {
     connection: 'checking',
     checkedAt: '',
   })
+  const [refreshing, setRefreshing] = useState(false)
   const activeRef = useRef(true)
   const inFlightRef = useRef(false)
 
-  const update = useCallback(async () => {
-    if (inFlightRef.current) return
-    inFlightRef.current = true
+  const performUpdate = useCallback(async () => {
+    const startedAt = Date.now()
     try {
       const next = await probeHub(hubUrl)
       if (activeRef.current) setStatus(next)
     } finally {
+      const elapsed = Date.now() - startedAt
+      if (elapsed < 400) {
+        await new Promise((resolve) =>
+          window.setTimeout(resolve, 400 - elapsed),
+        )
+      }
       inFlightRef.current = false
+      if (activeRef.current) setRefreshing(false)
     }
   }, [])
 
+  const refresh = useCallback(() => {
+    if (inFlightRef.current) return
+    inFlightRef.current = true
+    setRefreshing(true)
+    void performUpdate()
+  }, [performUpdate])
+
   useEffect(() => {
     activeRef.current = true
-    void update()
-    const interval = window.setInterval(update, 15_000)
+    refresh()
+    const interval = window.setInterval(refresh, 15_000)
     return () => {
       activeRef.current = false
       window.clearInterval(interval)
     }
-  }, [update])
+  }, [refresh])
 
   const connected = status.connection === 'connected'
   const hasBacklog = Boolean(status.sync && status.sync.pending > 0)
@@ -103,12 +117,19 @@ export function ConnectivityChip() {
         type="button"
         size="icon"
         variant="ghost"
-        className="size-8"
-        onClick={() => void update()}
+        className="group size-8"
+        disabled={refreshing}
+        aria-busy={refreshing}
+        onClick={refresh}
         aria-label={t('retryHub')}
         title={t('retryHub')}
       >
-        <RefreshCw className="size-4" aria-hidden="true" />
+        <RefreshCw
+          className={`size-4 transition-transform duration-200 group-active:animate-spin ${
+            refreshing ? 'animate-spin' : ''
+          }`}
+          aria-hidden="true"
+        />
       </Button>
     </div>
   )
