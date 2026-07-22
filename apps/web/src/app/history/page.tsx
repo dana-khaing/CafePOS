@@ -15,6 +15,7 @@ import { useLocale } from '@/components/locale-provider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { enqueueRefund } from '@/lib/refund-client'
+import { recordCashRefund, updateStoredShiftLedger } from '@/lib/shift-storage'
 import {
   HISTORY_STORAGE_KEY,
   emptyHistory,
@@ -70,7 +71,11 @@ export default function HistoryPage() {
     try {
       const staged = stageRefund(history, event)
       save(staged)
+      setPendingRetry(event)
       await enqueueRefund(receipt, event, managerPin)
+      await updateStoredShiftLedger(localStorage, (ledger) =>
+        recordCashRefund(ledger, receipt, validateRefundEvent(event)),
+      )
       const settled = settleRefund(staged, event.id)
       save(settled)
       setSelected(null)
