@@ -216,6 +216,20 @@ export function validateCompletedPaymentEvent(
   )
     throw new TypeError('Event is not a payment upsert')
   const payment = event.payload as unknown as CompletedPayment
+  validateCompletedPayment(payment)
+  if (
+    event.entityId !== payment.id ||
+    event.branchId !== payment.branchId ||
+    event.actorId !== payment.actorId ||
+    event.occurredAt !== payment.completedAt
+  )
+    throw new TypeError('Payment event envelope does not match payload')
+  return payment
+}
+
+export function validateCompletedPayment(
+  payment: CompletedPayment,
+): CompletedPayment {
   if (
     !payment.id?.trim() ||
     !payment.orderId?.trim() ||
@@ -235,12 +249,5 @@ export function validateCompletedPaymentEvent(
   const summary = paymentSummary(payment.session)
   if (JSON.stringify(summary) !== JSON.stringify(payment.summary))
     throw new TypeError('Completed payment summary is invalid')
-  if (
-    event.entityId !== payment.id ||
-    event.branchId !== payment.branchId ||
-    event.actorId !== payment.actorId ||
-    event.occurredAt !== payment.completedAt
-  )
-    throw new TypeError('Payment event envelope does not match payload')
   return payment
 }
