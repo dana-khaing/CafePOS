@@ -15,7 +15,7 @@ export type TaxBreakdown = Readonly<{
   gross: Money
 }>
 
-function validateRate(rate: TaxRate) {
+export function validateTaxRate(rate: TaxRate): TaxRate {
   if (!rate.id.trim() || !rate.name.trim())
     throw new TypeError('Tax rate requires an id and name')
   if (rate.mode !== 'exclusive' && rate.mode !== 'inclusive')
@@ -27,6 +27,7 @@ function validateRate(rate: TaxRate) {
   ) {
     throw new RangeError('Tax basis points must be an integer from 0 to 10000')
   }
+  return rate
 }
 
 function roundHalfUp(numerator: bigint, denominator: bigint) {
@@ -38,7 +39,7 @@ function roundHalfUp(numerator: bigint, denominator: bigint) {
 }
 
 export function calculateTax(amount: Money, rate: TaxRate): TaxBreakdown {
-  validateRate(rate)
+  validateTaxRate(rate)
   if (amount.minor < 0)
     throw new RangeError('Taxable amount cannot be negative')
 
