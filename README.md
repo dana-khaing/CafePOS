@@ -8,9 +8,9 @@ internet outages.
 ## Current status
 
 The repository contains the full 20-feature POS system and its supporting
-branch-hub workflow. Ongoing work now focuses on documentation, process
-refinement, and release readiness through one dated feature branch and pull
-request per milestone.
+branch-hub workflow. Current work is limited to documentation, process
+refinement, and release-readiness polish. Product features are not the focus of
+the current roadmap.
 
 ## Workspace
 
@@ -43,7 +43,8 @@ stores its selection on the device, while currency and dates use the browser's
 locale-aware `Intl` formatters.
 
 The release checklist lives in [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md)
-and should be followed before production deployment.
+and should be followed before production deployment. Use it as the minimum
+operator gate for backup validation, hub health checks, and smoke testing.
 
 ## Quality checks
 
