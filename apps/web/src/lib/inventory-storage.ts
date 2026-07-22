@@ -5,6 +5,7 @@ import {
   validateInventory,
   validateReceipt,
 } from '@cafepos/domain'
+import { CRITICAL_STORAGE_LOCK } from './storage-lock'
 
 export const INVENTORY_STORAGE_KEY = 'cafepos.inventory.v1'
 export const PENDING_INVENTORY_RECEIPTS_KEY = 'cafepos.inventory-pending.v1'
@@ -73,7 +74,7 @@ export async function updateStoredInventory(
 ) {
   if (!locks)
     throw new TypeError('Browser-wide inventory locking is unavailable')
-  return locks.request(INVENTORY_STORAGE_KEY, () => {
+  return locks.request(CRITICAL_STORAGE_LOCK, () => {
     const next = update(parseInventory(storage.getItem(INVENTORY_STORAGE_KEY)))
     storage.setItem(INVENTORY_STORAGE_KEY, serializeInventory(next))
     return next
@@ -118,7 +119,7 @@ export async function stageInventoryReceipt(
   validateReceipt(receipt)
   if (!locks)
     throw new TypeError('Browser-wide inventory locking is unavailable')
-  await locks.request(INVENTORY_STORAGE_KEY, () => {
+  await locks.request(CRITICAL_STORAGE_LOCK, () => {
     const pending = salvagePendingInventoryReceipts(storage)
     const existing = pending.find((entry) => entry.id === receipt.id)
     if (existing && JSON.stringify(existing) !== JSON.stringify(receipt))
@@ -136,7 +137,7 @@ export async function consumePendingInventory(
 ) {
   if (!locks)
     throw new TypeError('Browser-wide inventory locking is unavailable')
-  await locks.request(INVENTORY_STORAGE_KEY, () => {
+  await locks.request(CRITICAL_STORAGE_LOCK, () => {
     const pending = salvagePendingInventoryReceipts(storage)
     if (!pending.length) {
       storage.removeItem(PENDING_INVENTORY_RECEIPTS_KEY)
