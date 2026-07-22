@@ -134,6 +134,16 @@ export function createHubApp(
     }
   })
 
+  app.post('/v1/manager/verify', async (request, reply) => {
+    if (request.headers.authorization !== `Bearer ${config.branchToken}`)
+      return reply
+        .code(401)
+        .send({ error: 'Branch device authentication required' })
+    if (request.headers['x-manager-pin'] !== config.refundApprovalPin)
+      return reply.code(403).send({ error: 'Manager approval required' })
+    return { approved: true }
+  })
+
   app.get('/v1/kitchen/tickets', async (request, reply) => {
     if (request.headers.authorization !== `Bearer ${config.branchToken}`)
       return reply

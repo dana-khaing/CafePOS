@@ -31,6 +31,7 @@ const navigation: ReadonlyArray<{
     | 'menu'
     | 'orders'
     | 'history'
+    | 'shifts'
     | 'kitchen'
     | 'reports'
     | 'settings'
@@ -49,6 +50,12 @@ const navigation: ReadonlyArray<{
   {
     label: 'history',
     href: '/history' as Route,
+    icon: ReceiptText,
+    available: true,
+  },
+  {
+    label: 'shifts',
+    href: '/shifts' as Route,
     icon: ReceiptText,
     available: true,
   },

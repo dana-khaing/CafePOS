@@ -311,4 +311,28 @@ describe('branch hub health endpoint', () => {
     })
     expect(denied.statusCode).toBe(403)
   })
+
+  it('verifies manager approval without exposing the configured pin', async () => {
+    const app = createHubApp(config)
+    apps.push(app)
+    const approved = await app.inject({
+      method: 'POST',
+      url: '/v1/manager/verify',
+      headers: {
+        authorization: `Bearer ${config.branchToken}`,
+        'x-manager-pin': config.refundApprovalPin,
+      },
+    })
+    expect(approved.statusCode).toBe(200)
+    expect(approved.json()).toEqual({ approved: true })
+    const denied = await app.inject({
+      method: 'POST',
+      url: '/v1/manager/verify',
+      headers: {
+        authorization: `Bearer ${config.branchToken}`,
+        'x-manager-pin': 'wrong',
+      },
+    })
+    expect(denied.statusCode).toBe(403)
+  })
 })
