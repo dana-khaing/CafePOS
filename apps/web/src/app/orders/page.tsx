@@ -6,15 +6,17 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   addDraftOrderLine,
   calculateDraftOrderTotal,
+  createPaymentSession,
   createReceipt,
-  money,
   orderLineModifierSignature,
   setDraftOrderDiningMode,
   setDraftOrderLineQuantity,
   submitDraftOrder,
-  createPaymentSession,
   validateSubmittedOrderEvent,
   type DraftOrder,
+  type Menu,
+  type MenuItem,
+  type ModifierGroup,
   type PaymentSession,
   type Receipt,
 } from '@cafepos/domain'
@@ -53,6 +55,11 @@ import {
   parseSaleHistory,
   serializeSaleHistory,
 } from '@/lib/history-storage'
+import {
+  defaultMenu,
+  MENU_STORAGE_KEY,
+  parseStoredMenu,
+} from '@/lib/menu-storage'
 import { recordCashSale, updateStoredShiftLedger } from '@/lib/shift-storage'
 import {
   consumePendingInventory,
@@ -67,64 +74,10 @@ const vat = {
   mode: 'inclusive' as const,
 }
 type Product = Readonly<{
-  id: string
-  en: string
-  th: string
-  category: 'coffee' | 'tea' | 'bakery'
-  price: number
-  modifiers: readonly ('size' | 'milk')[]
+  item: MenuItem
+  categoryName: Readonly<{ en: string; th?: string }>
+  modifierGroups: readonly ModifierGroup[]
 }>
-
-const products = [
-  {
-    id: 'espresso',
-    en: 'Espresso',
-    th: 'เอสเปรสโซ',
-    category: 'coffee',
-    price: 8000,
-    modifiers: ['size'],
-  },
-  {
-    id: 'latte',
-    en: 'Café latte',
-    th: 'คาเฟ่ลาเต้',
-    category: 'coffee',
-    price: 12000,
-    modifiers: ['size', 'milk'],
-  },
-  {
-    id: 'cold-brew',
-    en: 'Cold brew',
-    th: 'โคลด์บรูว์',
-    category: 'coffee',
-    price: 13500,
-    modifiers: ['size'],
-  },
-  {
-    id: 'thai-tea',
-    en: 'Thai milk tea',
-    th: 'ชาไทย',
-    category: 'tea',
-    price: 9500,
-    modifiers: ['size', 'milk'],
-  },
-  {
-    id: 'matcha',
-    en: 'Matcha latte',
-    th: 'มัทฉะลาเต้',
-    category: 'tea',
-    price: 13000,
-    modifiers: ['size', 'milk'],
-  },
-  {
-    id: 'croissant',
-    en: 'Butter croissant',
-    th: 'ครัวซองต์เนย',
-    category: 'bakery',
-    price: 9000,
-    modifiers: [],
-  },
-] as const satisfies readonly Product[]
 
 const emptyOrder = (): DraftOrder => ({
   id: `draft-${Date.now()}`,
@@ -133,13 +86,16 @@ const emptyOrder = (): DraftOrder => ({
   lines: [],
 })
 
+type ModifierSelections = Record<string, Record<string, readonly string[]>>
+
 export default function OrdersPage() {
   const { locale, money: formatMoney, t } = useLocale()
   const [order, setOrder] = useState<DraftOrder>(emptyOrder)
   const [storageReady, setStorageReady] = useState(false)
+  const [menu, setMenu] = useState<Menu>(defaultMenu())
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('all')
-  const [choices, setChoices] = useState<Record<string, string[]>>({})
+  const [choices, setChoices] = useState<ModifierSelections>({})
   const [submission, setSubmission] = useState<
     'idle' | 'sending' | 'sent' | 'error'
   >('idle')
@@ -148,19 +104,43 @@ export default function OrdersPage() {
   const submittingRef = useRef(false)
   const pendingEventRef =
     useRef<ReturnType<typeof parsePendingOrderSubmission>>(null)
-  const label = (product: Product) =>
-    locale === 'th' ? product.th : product.en
-  const shown = useMemo<readonly Product[]>(() => {
+  const categoryById = useMemo(
+    () => new Map(menu.categories.map((entry) => [entry.id, entry])),
+    [menu.categories],
+  )
+  const modifierGroupById = useMemo(
+    () => new Map(menu.modifierGroups.map((entry) => [entry.id, entry])),
+    [menu.modifierGroups],
+  )
+  const sortedCategories = useMemo(
+    () =>
+      [...menu.categories].sort(
+        (left, right) => left.sortOrder - right.sortOrder,
+      ),
+    [menu.categories],
+  )
+  const visibleItems = useMemo<readonly Product[]>(() => {
     const normalized = query.trim().toLocaleLowerCase(locale)
-    return products.filter(
-      (product) =>
-        (category === 'all' || product.category === category) &&
-        (!normalized ||
-          `${product.en} ${product.th}`
-            .toLocaleLowerCase(locale)
-            .includes(normalized)),
-    )
-  }, [category, locale, query])
+    return menu.items
+      .filter((item) => category === 'all' || item.categoryId === category)
+      .filter((item) => {
+        if (!normalized) return true
+        return `${item.name.en} ${item.name.th ?? ''} ${item.sku}`
+          .toLocaleLowerCase(locale)
+          .includes(normalized)
+      })
+      .map((item) => ({
+        item,
+        categoryName:
+          categoryById.get(item.categoryId)?.name ??
+          ({ en: item.categoryId } as const),
+        modifierGroups: item.modifierGroupIds
+          .map((groupId) => modifierGroupById.get(groupId))
+          .filter((group): group is ModifierGroup => Boolean(group)),
+      }))
+  }, [category, categoryById, locale, menu.items, modifierGroupById, query])
+  const label = (text: { en: string; th?: string }) =>
+    locale === 'th' && text.th ? text.th : text.en
   const total = calculateDraftOrderTotal(order)
 
   useEffect(() => {
@@ -187,6 +167,24 @@ export default function OrdersPage() {
   }, [])
 
   useEffect(() => {
+    const loadMenu = () => {
+      try {
+        setMenu(
+          parseStoredMenu(
+            localStorage.getItem(MENU_STORAGE_KEY),
+            defaultMenu(),
+          ),
+        )
+      } catch {
+        setMenu(defaultMenu())
+      }
+    }
+    loadMenu()
+    window.addEventListener('storage', loadMenu)
+    return () => window.removeEventListener('storage', loadMenu)
+  }, [])
+
+  useEffect(() => {
     if (!storageReady) return
     void withCriticalStorageLock(() =>
       localStorage.setItem(ORDER_STORAGE_KEY, serializeOrder(order)),
@@ -195,17 +193,63 @@ export default function OrdersPage() {
     })
   }, [order, storageReady])
 
+  const toggleChoice = (
+    itemId: string,
+    group: ModifierGroup,
+    optionId: string,
+  ) => {
+    setChoices((current) => {
+      const currentGroup = current[itemId]?.[group.id] ?? []
+      const nextGroup =
+        group.maximum === 1
+          ? currentGroup.includes(optionId)
+            ? []
+            : [optionId]
+          : currentGroup.includes(optionId)
+            ? currentGroup.filter((entry) => entry !== optionId)
+            : [...currentGroup, optionId]
+      return {
+        ...current,
+        [itemId]: {
+          ...(current[itemId] ?? {}),
+          [group.id]: nextGroup,
+        },
+      }
+    })
+  }
+
+  const buildModifiers = (item: MenuItem) =>
+    item.modifierGroupIds.flatMap((groupId) => {
+      const group = modifierGroupById.get(groupId)
+      if (!group) return []
+      const selected = choices[item.id]?.[groupId] ?? []
+      const required = selected.length
+        ? selected
+        : group.minimum > 0
+          ? group.options
+              .filter((option) => option.available)
+              .slice(0, group.minimum)
+              .map((option) => option.id)
+          : []
+      return required.flatMap((optionId) => {
+        const option = group.options.find((entry) => entry.id === optionId)
+        if (!option) return []
+        return [
+          {
+            optionId: option.id,
+            name: label(option.name),
+            priceDelta: option.priceDelta,
+          },
+        ]
+      })
+    })
+
   const add = (product: Product) => {
-    const selected = choices[product.id] ?? []
-    const modifiers = selected.map((optionId) =>
-      optionId === 'large'
-        ? { optionId, name: t('large'), priceDelta: money(2500) }
-        : { optionId, name: t('oatMilk'), priceDelta: money(2000) },
-    )
+    const modifiers = buildModifiers(product.item)
     const signature = orderLineModifierSignature(modifiers)
     const existing = order.lines.find(
       (line) =>
-        line.itemId === product.id &&
+        line.itemId === product.item.id &&
         orderLineModifierSignature(line.modifiers) === signature,
     )
     if (existing) {
@@ -216,27 +260,15 @@ export default function OrdersPage() {
     }
     setOrder(
       addDraftOrderLine(order, {
-        id: `${product.id}-${Date.now()}`,
-        itemId: product.id,
-        name: label(product),
+        id: `${product.item.id}-${Date.now()}`,
+        itemId: product.item.id,
+        name: label(product.item.name),
         quantity: 1,
-        unitPrice: money(product.price),
+        unitPrice: product.item.price,
         modifiers,
         taxRate: vat,
       }),
     )
-  }
-
-  const toggleChoice = (productId: string, optionId: string) => {
-    setChoices((current) => {
-      const selected = current[productId] ?? []
-      return {
-        ...current,
-        [productId]: selected.includes(optionId)
-          ? selected.filter((entry) => entry !== optionId)
-          : [...selected, optionId],
-      }
-    })
   }
 
   const submit = async () => {
@@ -423,71 +455,98 @@ export default function OrdersPage() {
               )}
             </div>
             <div className="my-4 flex gap-2 overflow-x-auto pb-1">
-              {(['all', 'coffee', 'tea', 'bakery'] as const).map((entry) => (
+              <Button
+                size="sm"
+                variant={category === 'all' ? 'secondary' : 'outline'}
+                aria-pressed={category === 'all'}
+                onClick={() => setCategory('all')}
+              >
+                {t('allCategories')}
+              </Button>
+              {sortedCategories.map((entry) => (
                 <Button
-                  key={entry}
+                  key={entry.id}
                   size="sm"
-                  variant={category === entry ? 'secondary' : 'outline'}
-                  aria-pressed={category === entry}
-                  onClick={() => setCategory(entry)}
+                  variant={category === entry.id ? 'secondary' : 'outline'}
+                  aria-pressed={category === entry.id}
+                  onClick={() => setCategory(entry.id)}
                 >
-                  {t(entry === 'all' ? 'allCategories' : entry)}
+                  {label(entry.name)}
                 </Button>
               ))}
             </div>
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {shown.map((product) => (
+              {visibleItems.map((product) => (
                 <article
-                  key={product.id}
-                  className="rounded-xl border bg-card p-5 text-start shadow-sm"
+                  key={product.item.id}
+                  className="flex h-full flex-col rounded-xl border bg-card p-5 text-start shadow-sm"
                 >
-                  <Badge variant="secondary">{t(product.category)}</Badge>
+                  <Badge variant="secondary">
+                    {label(product.categoryName)}
+                  </Badge>
                   <h2 className="mt-8 text-lg font-semibold">
-                    {label(product)}
+                    {label(product.item.name)}
                   </h2>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {formatMoney(product.price)}
+                    {formatMoney(product.item.price.minor)}
                   </p>
-                  {product.modifiers.length > 0 && (
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {product.modifiers.includes('size') && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant={
-                            (choices[product.id] ?? []).includes('large')
-                              ? 'secondary'
-                              : 'outline'
-                          }
-                          aria-pressed={(choices[product.id] ?? []).includes(
-                            'large',
-                          )}
-                          onClick={() => toggleChoice(product.id, 'large')}
-                        >
-                          {t('large')} +{formatMoney(2500)}
-                        </Button>
-                      )}
-                      {product.modifiers.includes('milk') && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant={
-                            (choices[product.id] ?? []).includes('oat')
-                              ? 'secondary'
-                              : 'outline'
-                          }
-                          aria-pressed={(choices[product.id] ?? []).includes(
-                            'oat',
-                          )}
-                          onClick={() => toggleChoice(product.id, 'oat')}
-                        >
-                          {t('oatMilk')} +{formatMoney(2000)}
-                        </Button>
-                      )}
+                  {!product.item.available && (
+                    <Badge className="mt-3 w-fit" variant="warning">
+                      Unavailable
+                    </Badge>
+                  )}
+                  {product.modifierGroups.length > 0 && (
+                    <div className="mt-4 flex flex-col gap-3">
+                      {product.modifierGroups.map((group) => {
+                        const selected =
+                          choices[product.item.id]?.[group.id] ?? []
+                        return (
+                          <div key={group.id}>
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-sm font-medium">
+                                {label(group.name)}
+                              </p>
+                              <span className="text-xs text-muted-foreground">
+                                {group.minimum > 0 ? 'Required' : 'Optional'}
+                              </span>
+                            </div>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {group.options.map((option) => (
+                                <Button
+                                  key={option.id}
+                                  type="button"
+                                  size="sm"
+                                  variant={
+                                    selected.includes(option.id)
+                                      ? 'secondary'
+                                      : 'outline'
+                                  }
+                                  aria-pressed={selected.includes(option.id)}
+                                  disabled={!option.available}
+                                  onClick={() =>
+                                    toggleChoice(
+                                      product.item.id,
+                                      group,
+                                      option.id,
+                                    )
+                                  }
+                                >
+                                  {label(option.name)} +
+                                  {formatMoney(option.priceDelta.minor)}
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
                   )}
-                  <Button className="mt-4 w-full" onClick={() => add(product)}>
-                    {t('addToOrder')}
+                  <Button
+                    className="mt-auto w-full"
+                    onClick={() => add(product)}
+                    disabled={!product.item.available}
+                  >
+                    {product.item.available ? t('addToOrder') : 'Unavailable'}
                   </Button>
                 </article>
               ))}

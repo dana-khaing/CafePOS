@@ -1,19 +1,15 @@
 import { describe, expect, it } from 'vitest'
 
-import { createEmptyMenu } from '@cafepos/domain'
-
-import { parseStoredMenu, serializeMenu } from './menu-storage'
+import { defaultMenu, parseStoredMenu, serializeMenu } from './menu-storage'
 
 describe('local menu storage', () => {
   it('round trips a validated menu', () => {
-    const menu = createEmptyMenu('THB')
-    expect(
-      parseStoredMenu(serializeMenu(menu), createEmptyMenu('MMK')),
-    ).toEqual(menu)
+    const menu = defaultMenu()
+    expect(parseStoredMenu(serializeMenu(menu), defaultMenu())).toEqual(menu)
   })
 
   it('falls back when local data is malformed or invalid', () => {
-    const fallback = createEmptyMenu('THB')
+    const fallback = defaultMenu()
     expect(parseStoredMenu('{', fallback)).toBe(fallback)
     expect(
       parseStoredMenu(
