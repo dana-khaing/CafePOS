@@ -5,26 +5,42 @@ import { useEffect, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { useLocale } from '@/components/locale-provider'
+import { type HubConnection, probeHub } from '@/lib/hub-status'
+
+const hubUrl = process.env.NEXT_PUBLIC_BRANCH_HUB_URL ?? 'http://127.0.0.1:4310'
 
 export function ConnectivityChip() {
   const { t } = useLocale()
-  const [online, setOnline] = useState(true)
+  const [connection, setConnection] = useState<HubConnection>('checking')
 
   useEffect(() => {
-    const update = () => setOnline(navigator.onLine)
-    update()
-    window.addEventListener('online', update)
-    window.addEventListener('offline', update)
+    let active = true
+    const update = async () => {
+      const status = await probeHub(hubUrl)
+      if (active) setConnection(status)
+    }
+    void update()
+    const interval = window.setInterval(update, 15_000)
     return () => {
-      window.removeEventListener('online', update)
-      window.removeEventListener('offline', update)
+      active = false
+      window.clearInterval(interval)
     }
   }, [])
 
+  const connected = connection === 'connected'
+
   return (
-    <Badge variant={online ? 'success' : 'warning'} aria-live="polite">
-      {online ? <Cloud aria-hidden="true" /> : <CloudOff aria-hidden="true" />}
-      {online ? t('connected') : t('disconnected')}
+    <Badge variant={connected ? 'success' : 'warning'} aria-live="polite">
+      {connected ? (
+        <Cloud aria-hidden="true" />
+      ) : (
+        <CloudOff aria-hidden="true" />
+      )}
+      {connection === 'checking'
+        ? t('checkingHub')
+        : connected
+          ? t('connected')
+          : t('disconnected')}
     </Badge>
   )
 }
