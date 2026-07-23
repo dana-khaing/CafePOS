@@ -20,6 +20,6 @@ describe('localization utilities', () => {
     const date = new Date(2026, 6, 21)
 
     expect(formatCafeDate(date, 'en')).toBe('Tuesday 21 July')
-    expect(formatCafeDate(date, 'th')).toContain('กรกฎาคม')
+    expect(formatCafeDate(date, 'th')).toBe('วันอังคาร 21 กรกฎาคม')
   })
 })
