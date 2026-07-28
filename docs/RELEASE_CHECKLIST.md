@@ -2,6 +2,7 @@
 
 ## Before deployment
 
+- CafePOS should already be feature-complete; treat anything below as a release gate, not a product backlog item.
 - Use Node 22 and pnpm 10.13.1.
 - Copy `.env.example`, set unique branch credentials and manager PIN, and never commit secrets.
 - Run `pnpm release:check`.
