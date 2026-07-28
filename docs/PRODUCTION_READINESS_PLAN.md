@@ -1,8 +1,20 @@
 # Production readiness plan
 
-CafePOS already ships the current 20-feature product scope. The remaining work
+CafePOS already ships the current 20-feature product scope. There are no
+additional customer-facing features required for release. The remaining work
 before a real cafe or restaurant can rely on it in production is operational
-readiness, not new product features.
+readiness, not product development.
+
+## Release gates
+
+Before launch, all of the following must be true:
+
+- the deployment machines meet the repo requirements;
+- the branch hub is installed and reachable on the real branch network;
+- backup export and restore succeed on the target build;
+- the operator smoke test passes on real branch hardware;
+- tax, receipt, retention, and fiscal-device settings are reviewed for the
+  target country.
 
 ## 1. Environment and secrets
 
