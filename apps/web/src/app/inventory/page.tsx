@@ -166,15 +166,15 @@ export default function InventoryPage() {
         id: draft.id.trim(),
         name: draft.name.trim(),
         unit: draft.unit,
-        quantity: parseNonNegativeInteger(draft.quantity, 'Quantity'),
-        reorderAt: parseNonNegativeInteger(draft.reorderAt, 'Reorder level'),
+        quantity: parseNonNegativeInteger(draft.quantity, t('quantity')),
+        reorderAt: parseNonNegativeInteger(draft.reorderAt, t('reorderPoint')),
       }
       const next = await updateStoredInventory(localStorage, (current) =>
         saveStockItem(current, nextItem),
       )
       setInventory(next)
       clearDraft()
-      setNotice({ kind: 'saved', message: 'Stock item saved.' })
+      setNotice({ kind: 'saved', message: t('stockItemSaved') })
     } catch {
       setError(true)
     } finally {
@@ -208,7 +208,7 @@ export default function InventoryPage() {
       setDelta('')
       setReason('')
       setAdjustPin('')
-      setNotice({ kind: 'saved', message: 'Stock adjusted.' })
+      setNotice({ kind: 'saved', message: t('stockAdjusted') })
     } catch {
       setError(true)
     } finally {
@@ -285,19 +285,21 @@ export default function InventoryPage() {
           <CardContent className="p-5">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-xl font-semibold">Stock item editor</h2>
+                <h2 className="text-xl font-semibold">
+                  {t('stockItemEditor')}
+                </h2>
                 <p className="text-sm text-muted-foreground">
-                  Add or update inventory items, reorder levels, and units.
+                  {t('stockItemEditorDescription')}
                 </p>
               </div>
               <Button variant="outline" onClick={clearDraft}>
-                New item
+                {t('newItem')}
               </Button>
             </div>
 
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <label className="block text-sm font-medium">
-                Item id
+                {t('itemId')}
                 <input
                   className="mt-2 h-11 w-full rounded-md border bg-background px-3"
                   value={draft.id}
@@ -311,7 +313,7 @@ export default function InventoryPage() {
                 />
               </label>
               <label className="block text-sm font-medium">
-                Name
+                {t('name')}
                 <input
                   className="mt-2 h-11 w-full rounded-md border bg-background px-3"
                   value={draft.name}
@@ -324,7 +326,7 @@ export default function InventoryPage() {
                 />
               </label>
               <label className="block text-sm font-medium">
-                Unit
+                {t('unit')}
                 <select
                   className="mt-2 h-11 w-full rounded-md border bg-background px-3"
                   value={draft.unit}
@@ -341,7 +343,7 @@ export default function InventoryPage() {
                 </select>
               </label>
               <label className="block text-sm font-medium">
-                Starting quantity
+                {t('startingQuantity')}
                 <input
                   className="mt-2 h-11 w-full rounded-md border bg-background px-3"
                   inputMode="numeric"
@@ -355,7 +357,7 @@ export default function InventoryPage() {
                 />
               </label>
               <label className="block text-sm font-medium">
-                Reorder point
+                {t('reorderPoint')}
                 <input
                   className="mt-2 h-11 w-full rounded-md border bg-background px-3"
                   inputMode="numeric"
@@ -393,7 +395,7 @@ export default function InventoryPage() {
                 !draft.reorderAt.trim()
               }
             >
-              {editingItemId !== null ? 'Update item' : 'Save item'}
+              {editingItemId !== null ? t('updateItem') : t('saveItem')}
             </Button>
           </CardContent>
         </Card>
@@ -424,7 +426,7 @@ export default function InventoryPage() {
                     onClick={() => editItem(item)}
                   >
                     <PencilLine aria-hidden="true" />
-                    Edit
+                    {t('edit')}
                   </Button>
                   <Button
                     className="flex-1"
