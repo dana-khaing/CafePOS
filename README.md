@@ -25,6 +25,8 @@ operational:
 
 Use the release checklist as the minimum gate and the production readiness plan
 as the launch record.
+For the exact enforcement split between blocked, warned, and informational
+behaviors, see [docs/ENFORCEMENT_MATRIX.md](docs/ENFORCEMENT_MATRIX.md).
 
 ## Workspace
 

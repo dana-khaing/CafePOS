@@ -5,6 +5,9 @@ additional customer-facing features required for release. The remaining work
 before a real cafe or restaurant can rely on it in production is operational
 readiness, not product development.
 
+The canonical split between blocked, warned, and informational behaviors lives
+in [docs/ENFORCEMENT_MATRIX.md](ENFORCEMENT_MATRIX.md).
+
 ## Release gates
 
 Before launch, all of the following must be true:
@@ -59,6 +62,8 @@ Before launch, all of the following must be true:
   launch notes.
 - Treat the release checklist as the minimum gate and the production readiness
   plan as the wider launch record.
+- Use the enforcement matrix to confirm which outcomes should block, warn, or
+  merely inform the operator.
 
 ## Exit criteria
 

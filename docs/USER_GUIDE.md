@@ -17,6 +17,18 @@ CafePOS is split into a few working areas:
 - Backup & recovery: manage local backup and restore workflows.
 - Settings: change local preferences and branch configuration.
 
+## Enforcement summary
+
+CafePOS uses three behavior classes:
+
+- Blocked: unauthenticated access, sold-out items, invalid backups, and
+  manager-only actions without approval.
+- Warned: low-stock items, hub disconnects, and pending sync.
+- Informational: reports, summaries, and branch status.
+
+When in doubt, assume money, stock, and recovery actions are blocked until the
+required check passes.
+
 ## First things to check
 
 When the app opens, confirm:
@@ -119,6 +131,8 @@ Example:
 
 Use the availability button on each item card to mark it available or unavailable.
 Unavailable items stay in the catalog but cannot be sold from the order screen.
+Low stock stays visible with a warning so staff can sell through remaining
+stock. Sold-out items are blocked from ordering.
 
 ### Modifier groups
 
@@ -223,6 +237,8 @@ Use Backup & recovery when you need to:
 - verify the branch has a recoverable copy of data.
 
 Backups should be checked before any production go-live.
+Restore is manager-protected and only accepts a validated CafePOS backup with
+the expected schema and checksum.
 
 ## Settings
 
@@ -234,6 +250,8 @@ Settings are for branch-level configuration such as:
 - connected branch settings.
 
 If you change branch credentials or hub settings, do it carefully and record the change.
+Branch provisioning credentials are separate from the manager PIN used inside
+the cashier app.
 
 ## Common operational flow
 
