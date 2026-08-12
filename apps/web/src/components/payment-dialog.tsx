@@ -15,6 +15,7 @@ import {
 } from '@cafepos/domain'
 import { useLocale } from './locale-provider'
 import { Button } from './ui/button'
+import { BRANCH_ID } from '@/lib/branch-config'
 import { enqueuePayment } from '@/lib/payment-client'
 import {
   PAYMENT_STORAGE_KEY,
@@ -63,7 +64,7 @@ export function PaymentDialog({
       const event =
         pendingEventRef.current ??
         completePayment(paid, {
-          branchId: 'branch-riverside',
+          branchId: BRANCH_ID,
           actorId: 'cashier-local',
           completedAt: new Date().toISOString(),
           eventId: `payment:${paid.id}:v1`,
