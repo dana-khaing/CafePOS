@@ -1,5 +1,8 @@
 # CafePOS
 
+[![CI](https://github.com/dana-khaing/CafePOS/actions/workflows/ci.yml/badge.svg?branch=timeline)](https://github.com/dana-khaing/CafePOS/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 CafePOS is an offline-first, multi-branch point-of-sale system for cafes and
 restaurants in Myanmar and Thailand. It is designed for counter and table
 service, with a Windows branch hub that keeps local operations running during
