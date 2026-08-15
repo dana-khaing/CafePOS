@@ -10,7 +10,11 @@ import {
   Utensils,
 } from 'lucide-react'
 import Link from 'next/link'
-import { refundedTotal, validateRefundEvent } from '@cafepos/domain'
+import {
+  expectedDrawerCash,
+  refundedTotal,
+  validateRefundEvent,
+} from '@cafepos/domain'
 
 import { AppShell } from '@/components/app-shell'
 import { useLocale } from '@/components/locale-provider'
@@ -35,6 +39,12 @@ import {
   defaultSettings,
   parseSettings,
 } from '@/lib/settings-storage'
+import {
+  SHIFT_STORAGE_KEY,
+  emptyShiftLedger,
+  parseShiftLedger,
+  type ShiftLedger,
+} from '@/lib/shift-storage'
 import { buildWeeklySalesComparison } from '@/lib/sales-summary'
 
 const quickActions = [
@@ -62,6 +72,8 @@ export default function HomePage() {
   const { date, locale, money, t } = useLocale()
   const [history, setHistory] = useState<SaleHistory>(emptyHistory())
   const [settings, setSettings] = useState(defaultSettings())
+  const [shiftLedger, setShiftLedger] = useState<ShiftLedger>(emptyShiftLedger)
+  const [now, setNow] = useState(() => Date.now())
   const [businessDate, setBusinessDate] = useState(() =>
     dateInTimezone(new Date(), defaultSettings().timezone),
   )
@@ -69,6 +81,7 @@ export default function HomePage() {
   useEffect(() => {
     const load = () => {
       setHistory(parseSaleHistory(localStorage.getItem(HISTORY_STORAGE_KEY)))
+      setShiftLedger(parseShiftLedger(localStorage.getItem(SHIFT_STORAGE_KEY)))
       try {
         const next = parseSettings(localStorage.getItem(SETTINGS_STORAGE_KEY))
         setSettings(next)
@@ -81,6 +94,21 @@ export default function HomePage() {
     window.addEventListener('storage', load)
     return () => window.removeEventListener('storage', load)
   }, [])
+
+  useEffect(() => {
+    const ticker = window.setInterval(() => setNow(Date.now()), 60_000)
+    return () => window.clearInterval(ticker)
+  }, [])
+
+  const currentShift = shiftLedger.current
+  const shiftDuration = useMemo(() => {
+    if (!currentShift) return null
+    const minutes = Math.max(
+      0,
+      Math.floor((now - Date.parse(currentShift.openedAt)) / 60_000),
+    )
+    return `${Math.floor(minutes / 60)}${t('hoursUnit')} ${minutes % 60}${t('minutesUnit')}`
+  }, [currentShift, now, t])
 
   const sales = useMemo(
     () => buildWeeklySalesComparison(history, businessDate, settings.timezone),
@@ -217,10 +245,26 @@ export default function HomePage() {
           <Card>
             <CardHeader className="pb-2">
               <CardDescription>{t('currentShift')}</CardDescription>
-              <CardTitle className="text-2xl">{t('shiftOpen')}</CardTitle>
+              <CardTitle className="text-2xl">
+                {currentShift
+                  ? `${t('shiftOpen')} · ${shiftDuration}`
+                  : t('noOpenShift')}
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <Badge variant="outline">{t('till')}</Badge>
+              {currentShift ? (
+                <Badge variant="outline">
+                  {t('expectedCash')}:{' '}
+                  {money(expectedDrawerCash(currentShift).minor / 100)}
+                </Badge>
+              ) : (
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href="/shifts">
+                    {t('openShift')}
+                    <ArrowRight aria-hidden="true" />
+                  </Link>
+                </Button>
+              )}
             </CardContent>
           </Card>
         </section>
