@@ -199,7 +199,21 @@ export default function OrdersPage() {
         localStorage.getItem(ORDER_STORAGE_KEY),
         fallback,
       )
-      setOrder(restored)
+      const presetMode = new URLSearchParams(window.location.search).get('mode')
+      const withPresetMode =
+        (presetMode === 'table' ||
+          presetMode === 'takeaway' ||
+          presetMode === 'counter') &&
+        presetMode !== restored.diningMode
+          ? setDraftOrderDiningMode(
+              restored,
+              presetMode,
+              presetMode === 'table'
+                ? (restored.tableNumber ?? '1')
+                : undefined,
+            )
+          : restored
+      setOrder(withPresetMode)
       const pending = parsePendingOrderSubmission(
         localStorage.getItem(PENDING_ORDER_SUBMISSION_KEY),
       )
