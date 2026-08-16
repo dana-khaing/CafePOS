@@ -27,6 +27,7 @@ export default function ReportsPage() {
   const [date, setDate] = useState(() =>
     dateInTimezone(new Date(), defaultSettings().timezone),
   )
+  const [loaded, setLoaded] = useState(false)
   useEffect(() => {
     const load = () => {
       setHistory(parseSaleHistory(localStorage.getItem(HISTORY_STORAGE_KEY)))
@@ -37,6 +38,7 @@ export default function ReportsPage() {
       } catch {
         // Keep validated defaults if settings storage is corrupt.
       }
+      setLoaded(true)
     }
     load()
     window.addEventListener('storage', load)
@@ -92,112 +94,129 @@ export default function ReportsPage() {
             />
           </label>
         </div>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {[
-            [t('grossSales'), format(report.grossMinor)],
-            [t('refunds'), format(report.refundMinor)],
-            [t('netSales'), format(report.netMinor)],
-            [t('averageOrder'), format(report.averageOrderMinor)],
-          ].map(([label, value]) => (
-            <Card key={label}>
-              <CardContent className="p-5">
-                <p className="text-sm text-muted-foreground">{label}</p>
-                <p className="mt-2 text-2xl font-semibold">{value}</p>
+        {!loaded ? (
+          <p role="status" className="mt-8 text-muted-foreground">
+            {t('loadingReports')}
+          </p>
+        ) : (
+          <>
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {[
+                [t('grossSales'), format(report.grossMinor)],
+                [t('refunds'), format(report.refundMinor)],
+                [t('netSales'), format(report.netMinor)],
+                [t('averageOrder'), format(report.averageOrderMinor)],
+              ].map(([label, value]) => (
+                <Card key={label}>
+                  <CardContent className="p-5">
+                    <p className="text-sm text-muted-foreground">{label}</p>
+                    <p className="mt-2 text-2xl font-semibold">{value}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            <div className="mt-6 grid gap-6 lg:grid-cols-2">
+              <Card>
+                <CardContent className="p-6">
+                  <h2 className="text-xl font-semibold">{t('tenderMix')}</h2>
+                  <div className="mt-5 space-y-4">
+                    {tenderRows.map(({ key, Icon, amount }) => (
+                      <div
+                        className="flex items-center justify-between"
+                        key={key}
+                      >
+                        <span className="flex items-center gap-2">
+                          <Icon className="size-4" aria-hidden="true" />
+                          {t(key)}
+                        </span>
+                        <strong>{format(amount)}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-6">
+                  <h2 className="flex items-center gap-2 text-xl font-semibold">
+                    <BarChart3 aria-hidden="true" />
+                    {t('topProducts')}
+                  </h2>
+                  <div className="mt-5 space-y-3">
+                    {report.products.length ? (
+                      report.products.slice(0, 5).map((product) => (
+                        <div
+                          className="flex justify-between gap-3"
+                          key={product.itemId}
+                        >
+                          <span>
+                            {product.name} · {product.quantity}
+                          </span>
+                          <strong>{format(product.grossMinor)}</strong>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-muted-foreground">
+                        {t('noReportData')}
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            <Card className="mt-6">
+              <CardContent className="p-6">
+                <div className="flex flex-wrap items-end justify-between gap-4">
+                  <div>
+                    <h2 className="text-xl font-semibold">
+                      {t('twoWeekSales')}
+                    </h2>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {t('twoWeekSalesDescription')}
+                    </p>
+                  </div>
+                  <Badge variant="outline">
+                    {formatDate(new Date(`${date}T12:00:00Z`))}
+                  </Badge>
+                </div>
+                <div className="mt-5 overflow-hidden rounded-lg border">
+                  <div className="grid grid-cols-[1.25fr_0.6fr_0.8fr_0.8fr] gap-3 border-b bg-muted/40 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    <span>{t('businessDate')}</span>
+                    <span className="text-end">{t('dailyOrders')}</span>
+                    <span className="text-end">{t('dailyNetSales')}</span>
+                    <span className="text-end">{t('dailyRefunds')}</span>
+                  </div>
+                  <div className="divide-y">
+                    {salesSeries.map(
+                      ({ date: salesDate, report: dailyReport }) => {
+                        const hasSales =
+                          dailyReport.orderCount > 0 || dailyReport.netMinor > 0
+                        return (
+                          <div
+                            className="grid grid-cols-[1.25fr_0.6fr_0.8fr_0.8fr] gap-3 px-4 py-3 text-sm"
+                            key={salesDate}
+                          >
+                            <span className="font-medium">
+                              {formatSeriesDate(salesDate)}
+                            </span>
+                            <span className="text-end">
+                              {hasSales ? dailyReport.orderCount : '—'}
+                            </span>
+                            <span className="text-end font-medium">
+                              {format(dailyReport.netMinor)}
+                            </span>
+                            <span className="text-end text-muted-foreground">
+                              {format(dailyReport.refundMinor)}
+                            </span>
+                          </div>
+                        )
+                      },
+                    )}
+                  </div>
+                </div>
               </CardContent>
             </Card>
-          ))}
-        </div>
-        <div className="mt-6 grid gap-6 lg:grid-cols-2">
-          <Card>
-            <CardContent className="p-6">
-              <h2 className="text-xl font-semibold">{t('tenderMix')}</h2>
-              <div className="mt-5 space-y-4">
-                {tenderRows.map(({ key, Icon, amount }) => (
-                  <div className="flex items-center justify-between" key={key}>
-                    <span className="flex items-center gap-2">
-                      <Icon className="size-4" aria-hidden="true" />
-                      {t(key)}
-                    </span>
-                    <strong>{format(amount)}</strong>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <h2 className="flex items-center gap-2 text-xl font-semibold">
-                <BarChart3 aria-hidden="true" />
-                {t('topProducts')}
-              </h2>
-              <div className="mt-5 space-y-3">
-                {report.products.length ? (
-                  report.products.slice(0, 5).map((product) => (
-                    <div
-                      className="flex justify-between gap-3"
-                      key={product.itemId}
-                    >
-                      <span>
-                        {product.name} · {product.quantity}
-                      </span>
-                      <strong>{format(product.grossMinor)}</strong>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-muted-foreground">{t('noReportData')}</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        <Card className="mt-6">
-          <CardContent className="p-6">
-            <div className="flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-semibold">{t('twoWeekSales')}</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {t('twoWeekSalesDescription')}
-                </p>
-              </div>
-              <Badge variant="outline">
-                {formatDate(new Date(`${date}T12:00:00Z`))}
-              </Badge>
-            </div>
-            <div className="mt-5 overflow-hidden rounded-lg border">
-              <div className="grid grid-cols-[1.25fr_0.6fr_0.8fr_0.8fr] gap-3 border-b bg-muted/40 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                <span>{t('businessDate')}</span>
-                <span className="text-end">{t('dailyOrders')}</span>
-                <span className="text-end">{t('dailyNetSales')}</span>
-                <span className="text-end">{t('dailyRefunds')}</span>
-              </div>
-              <div className="divide-y">
-                {salesSeries.map(({ date: salesDate, report: dailyReport }) => {
-                  const hasSales =
-                    dailyReport.orderCount > 0 || dailyReport.netMinor > 0
-                  return (
-                    <div
-                      className="grid grid-cols-[1.25fr_0.6fr_0.8fr_0.8fr] gap-3 px-4 py-3 text-sm"
-                      key={salesDate}
-                    >
-                      <span className="font-medium">
-                        {formatSeriesDate(salesDate)}
-                      </span>
-                      <span className="text-end">
-                        {hasSales ? dailyReport.orderCount : '—'}
-                      </span>
-                      <span className="text-end font-medium">
-                        {format(dailyReport.netMinor)}
-                      </span>
-                      <span className="text-end text-muted-foreground">
-                        {format(dailyReport.refundMinor)}
-                      </span>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+          </>
+        )}
       </section>
     </AppShell>
   )
