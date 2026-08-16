@@ -19,6 +19,7 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<CafeSettings>(defaultSettings)
   const [pin, setPin] = useState('')
   const [status, setStatus] = useState<'idle' | 'saved' | 'error'>('idle')
+  const [errorMessage, setErrorMessage] = useState('')
   const busy = useRef(false)
   useEffect(() => {
     const load = () => {
@@ -48,7 +49,8 @@ export default function SettingsPage() {
       await saveSettings(localStorage, settings)
       setPin('')
       setStatus('saved')
-    } catch {
+    } catch (caught) {
+      setErrorMessage(caught instanceof Error ? caught.message : '')
       setStatus('error')
     } finally {
       busy.current = false
@@ -64,7 +66,7 @@ export default function SettingsPage() {
             role="alert"
             className="mt-4 rounded-md bg-destructive/10 p-3 text-destructive"
           >
-            {t('settingsError')}
+            {errorMessage || t('settingsError')}
           </p>
         )}
         {status === 'saved' && (

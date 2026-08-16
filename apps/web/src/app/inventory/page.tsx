@@ -175,8 +175,11 @@ export default function InventoryPage() {
       setInventory(next)
       clearDraft()
       setNotice({ kind: 'saved', message: t('stockItemSaved') })
-    } catch {
-      setError(true)
+    } catch (caught) {
+      setNotice({
+        kind: 'error',
+        message: caught instanceof Error ? caught.message : t('inventoryError'),
+      })
     } finally {
       busy.current = false
     }
@@ -209,8 +212,11 @@ export default function InventoryPage() {
       setReason('')
       setAdjustPin('')
       setNotice({ kind: 'saved', message: t('stockAdjusted') })
-    } catch {
-      setError(true)
+    } catch (caught) {
+      setNotice({
+        kind: 'error',
+        message: caught instanceof Error ? caught.message : t('inventoryError'),
+      })
     } finally {
       busy.current = false
     }
@@ -243,7 +249,7 @@ export default function InventoryPage() {
 
         {notice.kind !== 'idle' && notice.message && (
           <p
-            role="status"
+            role={notice.kind === 'error' ? 'alert' : 'status'}
             className={`mt-4 rounded-md p-3 text-sm ${
               notice.kind === 'saved'
                 ? 'bg-emerald-500/10 text-emerald-700'
