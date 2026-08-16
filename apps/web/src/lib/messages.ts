@@ -246,6 +246,7 @@ export const messages = {
     backupDescription:
       'Protect critical sales, inventory, menu, and drawer records.',
     backupError: 'The backup is invalid or the operation failed.',
+    noBackupFileChosen: 'Choose a backup file first.',
     restoreComplete:
       'Backup restored. Reload open screens to use the restored data.',
     exportBackup: 'Export backup',
@@ -523,6 +524,7 @@ export const messages = {
     backup: 'สำรองและกู้คืน',
     backupDescription: 'ปกป้องข้อมูลการขาย สต็อก เมนู และลิ้นชักที่สำคัญ',
     backupError: 'ไฟล์สำรองไม่ถูกต้องหรือดำเนินการไม่สำเร็จ',
+    noBackupFileChosen: 'กรุณาเลือกไฟล์สำรองก่อน',
     restoreComplete: 'กู้คืนแล้ว โปรดโหลดหน้าที่เปิดอยู่ใหม่',
     exportBackup: 'ส่งออกข้อมูลสำรอง',
     exportBackupDescription: 'ดาวน์โหลดสำเนาข้อมูลสำคัญพร้อมผลตรวจสอบ',
