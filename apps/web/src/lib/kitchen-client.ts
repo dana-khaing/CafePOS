@@ -5,7 +5,11 @@ const token = process.env.NEXT_PUBLIC_BRANCH_HUB_TOKEN ?? ''
 const headers = { authorization: `Bearer ${token}` }
 
 export async function loadKitchenTickets(fetcher: typeof fetch = fetch) {
-  const response = await fetcher(`${hubUrl}/v1/kitchen/tickets`, { headers })
+  const response = await fetcher(`${hubUrl}/v1/kitchen/tickets`, {
+    headers,
+    cache: 'no-store',
+    signal: AbortSignal.timeout(2_000),
+  })
   if (!response.ok)
     throw new Error(`Kitchen queue unavailable (${response.status})`)
   const body = (await response.json()) as { tickets: KitchenTicket[] }
@@ -25,6 +29,7 @@ export async function advanceKitchenTicketAtHub(
       method: 'POST',
       headers: { ...headers, 'content-type': 'application/json' },
       body: JSON.stringify({ expectedStatus }),
+      signal: AbortSignal.timeout(2_000),
     },
   )
   if (!response.ok)
