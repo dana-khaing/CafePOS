@@ -19,6 +19,7 @@ export default function KitchenPage() {
   const [tickets, setTickets] = useState<readonly KitchenTicket[]>([])
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [busyTicket, setBusyTicket] = useState<string | null>(null)
+  const [ticketError, setTicketError] = useState<string | null>(null)
   const inFlightRef = useRef(false)
   const revisionRef = useRef(0)
   const refresh = useCallback(async () => {
@@ -48,6 +49,7 @@ export default function KitchenPage() {
   const advance = async (ticket: KitchenTicket) => {
     if (busyTicket === ticket.id) return
     setBusyTicket(ticket.id)
+    setTicketError(null)
     try {
       const updated = await advanceKitchenTicketAtHub(ticket.id, ticket.status)
       revisionRef.current += 1
@@ -57,7 +59,11 @@ export default function KitchenPage() {
           : current.map((entry) => (entry.id === updated.id ? updated : entry)),
       )
     } catch {
-      setStatus('error')
+      // A single ticket's advance failing (e.g. a 409 from two staff
+      // advancing it near-simultaneously) is a different, much more common
+      // failure than the whole queue being unreachable - give it its own
+      // narrow surface instead of the global "queue unavailable" banner.
+      setTicketError(ticket.id)
     } finally {
       setBusyTicket(null)
     }
@@ -156,6 +162,11 @@ export default function KitchenPage() {
                     </li>
                   ))}
                 </ul>
+                {ticketError === ticket.id && (
+                  <p role="alert" className="mt-3 text-sm text-destructive">
+                    {t('ticketUpdateFailed')}
+                  </p>
+                )}
                 <Button
                   className="mt-6 w-full"
                   size="lg"
